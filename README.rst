@@ -5,7 +5,7 @@ Python Database Connector
 
 Introduction
 ============
-Python Database Connector is a simple package providing abstruct DDL and DML
+Python Database Connector is a simple package providing abstract DDL and DML
 methods for managing different databases.
 
 
