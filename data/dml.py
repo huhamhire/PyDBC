@@ -371,13 +371,48 @@ class OrderBy(ClauseBase):
 
 class GroupBy(ClauseBase):
     """
+    Create SQL `GROUP BY` clause to to group the result-set by one or more
+    columns.
+
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
     def add_column(self, column_name):
-        pass
+        """
+        Add column to group the result.
+
+        :param column_name: Column name of target column to group.
+        :type column_name: str
+        """
+        self._columns.append(column_name)
 
     def to_sql(self, dialect):
-        pass
+        """
+        Convert `GroupBy` object to be component of SQL statement.
+
+        :param dialect: SQL dialect to generate statements to work with
+            different databases. This dialect should be an instance of
+            :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL `GroupBy` clause.
+        :rtype: str
+        """
+        sql_buffer = []
+        need_comma = False
+        if self._raw_sql:
+            # Use raw SQL statement if exists
+            sql_buffer.append(self.create_keyword())
+            sql_buffer.append(self._raw_sql)
+        elif self.get_size() > 0:
+            sql_buffer.append(self.create_keyword())
+            for column_name in self._columns:
+                # Add comma
+                if need_comma:
+                    sql_buffer.append(", ")
+                else:
+                    need_comma = True
+                # Add column name
+                sql_buffer.append(dialect.column2sql(column_name))
+        return "".join(sql_buffer)
 
     def create_keyword(self):
         """
