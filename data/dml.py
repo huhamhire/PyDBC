@@ -15,12 +15,15 @@
 __author__ = "huhamhire <me@huhamhire.com>"
 
 from .constants import CompareTypes, ValueTypes, RelationTypes
+from .dialect import Dialect
 from .sqlutils import SQLUtils
 
 
 class Where(object):
     """
-    :ivar list _columns:
+     Create SQL `WHERE` clause to filter records.
+
+    :ivar list _columns: Column list to define the criterion.
     """
     _columns = []
 
@@ -29,16 +32,24 @@ class Where(object):
                    compare_type=CompareTypes.EQUALS,
                    relation_type=RelationTypes.AND):
         """
-        :param column_name:
+        Add a column to extract only those records that fulfill a specified
+        criterion.
+
+        :param column_name: Column name of target column to filter records.
         :type column_name: str
-        :param column_value:
+        :param column_value: Value for target column to filter records.
         :type column_value: object
-        :param column_type:
+        :param column_type: Column data type of target column.
         :type column_type: ValueTypes
-        :param compare_type:
+        :param compare_type: Type of comparison between record value and target
+            value.
         :type compare_type: CompareTypes
-        :param relation_type:
+        :param relation_type: Type of relation between different criterion.
         :type relation_type: RelationTypes
+
+        .. seealso:: :class:`~.constants.ValueTypes`,
+            :class:`~.constants.CompareTypes` and
+            :class:`~.constants.RelationTypes`.
         """
         if column_name is not None:
             self._columns.append({
@@ -51,21 +62,28 @@ class Where(object):
 
     def get_size(self):
         """
-        :return:
+        Get number of the columns for criterion of `WHERE` clause.
+
+        :return: Number of the columns
         :rtype: int
         """
         return len(self._columns)
 
     def clear(self):
         """
+        Reset columns for `WHERE` clause.
         """
         self._columns = []
 
     def to_sql(self, dialect):
         """
-        :param dialect:
-        :type dialect:
-        :return:
+        Convert `Where` object to be component of SQL statement.
+
+        :param dialect: SQL dialect to generate statements to work with
+            different databases. This dialect should be an instance of
+            :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL `WHERE` clause.
         :rtype: str
         """
         sql_buffer = []
@@ -97,18 +115,15 @@ class Where(object):
 
 class OrderBy(object):
     """
-    Create column order method after the SQL `ORDER BY` Keyword.
+    Create SQL `ORDER BY` clause to sort the result-set by one or more columns.
 
-    :ivar str _column: Column name of the target column to be ordered by.
-    :ivar bool _asc: Sort the records in ascending order or in a descending
-        order. Default by "True(ascending)".
+    :ivar list _columns: Column list in the result-set to be sorted order by.
     """
-    _column = None
-    _asc = True
+    _columns = []
 
-    def __init__(self, column_name, asc=True):
+    def add_column(self, column_name, asc=True):
         """
-        Create the column order method.
+        Add a column for sorting order.
 
         :param column_name: Column name of the target column to be ordered by.
         :type column_name: str
@@ -116,51 +131,63 @@ class OrderBy(object):
             order. Default by "True(ascending)".
         :type asc: bool
         """
-        self._column = column_name
-        self._asc = asc
+        if column_name is not None:
+            self._columns.append({
+                "name": column_name,
+                "asc": asc
+            })
 
-    def set_column(self, column_name):
+    def get_size(self):
         """
-        Set the name of current column.
+        Get number of the columns for `ORDER BY` clause.
 
-        :param column_name: Column name of the target column to be ordered by.
-        :type column_name: str
+        :return: Number of the columns.
+        :rtype: int
         """
-        self._column = column_name
+        return len(self._columns)
 
-    def get_column(self):
+    def clear(self):
         """
-        Get the name of current column.
+        Reset columns for `ORDER BY` clause.
+        """
+        self._columns = []
 
-        :return: Column name of the target column to be ordered by.
+    def to_sql(self, dialect):
+        """
+        Convert `OrderBy` object to be component of SQL statement.
+
+        :param dialect: SQL dialect to generate statements to work with
+            different databases. This dialect should be an instance of
+            :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL `ORDER BY` clause.
         :rtype: str
         """
-        return self._column
-
-    def set_asc(self, asc=True):
-        """
-        Set sort order of current column.
-
-        :param asc: Sort the records in ascending order or in a descending
-            order. Default by "True(ascending)".
-        :type asc: bool
-        """
-        self._asc = asc
-
-    def get_asc(self):
-        """
-        Get set order of current column.
-
-        :return: A boolean indicating the sort order of the records.
-        :rtype: bool
-        """
-        return self._asc
+        sql_buffer = []
+        if self.get_size() > 0:
+            sql_buffer.append(" ORDER BY ")
+            for column in self._columns:
+                # Add column name
+                sql_buffer.append(dialect.column2sql(column["name"]))
+                # Add order type
+                sql_buffer.append(SQLUtils.get_sql_order_type(column["asc"]))
+                # Add comma
+                sql_buffer.append(", ")
+            # remove last comma
+            sql_buffer.pop()
+        return "".join(sql_buffer)
 
 
 class Select(object):
     _columns = []
-    _orders = []
+    _order = None
     _where = None
+
+    def set_order(self, order):
+        self._order = order
+
+    def get_order(self):
+        return self._order
 
     def set_where(self, where):
         self._where = where
@@ -171,7 +198,3 @@ class Select(object):
     def add_column(self, column_name):
         if column_name is not None:
             self._columns.append(column_name)
-
-    def add_order_by(self, column_name, asc=True):
-        if column_name is not None:
-            self._orders.append(OrderBy(column_name, asc))

@@ -15,12 +15,7 @@
 __author__ = "huhamhire <me@huhamhire.com>"
 
 
-from abc import ABCMeta
-
-
-class AbstractDialect(object):
-    __metaclass__ = ABCMeta
-
+class Dialect(object):
     _column_quote = None
 
     def column2sql(self, column_name):

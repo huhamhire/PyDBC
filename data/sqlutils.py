@@ -33,27 +33,26 @@ class SQLUtils(object):
         elif compare_type == CompareTypes.LESS_THAN_OR_EQUAL:
             operator = "<="
         elif compare_type == CompareTypes.BEGINS_WITH:
-            operator = " like "
+            operator = " LIKE "
             value += "%"
         elif compare_type == CompareTypes.NOT_BEGIN_WITH:
-            operator = " not like "
+            operator = " NOT LIKE "
             value += "%"
         elif compare_type == CompareTypes.ENDS_WITH:
-            operator = " like "
+            operator = " LIKE "
             value = "%" + value
         elif compare_type == CompareTypes.NOT_END_WITH:
-            operator = " not like "
+            operator = " NOT LIKE "
             value = "%" + value
         elif compare_type == CompareTypes.CONTAINS:
-            operator = " like "
+            operator = " LIKE "
             value = "%" + value + "%"
         elif compare_type == CompareTypes.NOT_CONTAIN:
-            operator = " not like "
+            operator = " NOT LIKE "
             value = "%" + value + "%"
         else:
             operator = "="
         return operator, value
-
 
     @staticmethod
     def get_sql_relation(relation):
@@ -61,3 +60,10 @@ class SQLUtils(object):
             return " AND "
         else:
             return " OR "
+
+    @staticmethod
+    def get_sql_order_type(asc):
+        if not asc:
+            return " DESC"
+        else:
+            return " ASC"
