@@ -14,7 +14,7 @@
 
 __author__ = "huhamhire <me@huhamhire.com>"
 
-from .constants import CompareTypes, RelationTypes
+from .constants import CompareTypes, RelationTypes, AggregateFunctions
 
 
 class SQLUtils(object):
@@ -50,6 +50,16 @@ class SQLUtils(object):
         elif compare_type == CompareTypes.NOT_CONTAIN:
             operator = " NOT LIKE "
             value = "%" + value + "%"
+        elif compare_type == CompareTypes.IN:
+            operator = " IN "
+        elif compare_type == CompareTypes.NOT_IN:
+            operator = " NOT IN "
+        elif compare_type == CompareTypes.NULL:
+            operator = " IS NULL"
+            value = ""
+        elif compare_type == CompareTypes.NOT_NULL:
+            operator = " IS NOT NULL"
+            value = ""
         else:
             operator = "="
         return operator, value
@@ -67,3 +77,19 @@ class SQLUtils(object):
             return " DESC"
         else:
             return " ASC"
+
+    @staticmethod
+    def get_aggr_func_with_column(func_type, column_name):
+        if func_type == AggregateFunctions.AVG:
+            function = "AVG(" + column_name + ")"
+        elif func_type == AggregateFunctions.COUNT:
+            function = "COUNT(" + column_name + ")"
+        elif func_type == AggregateFunctions.MAX:
+            function = "MAX(" + column_name + ")"
+        elif func_type == AggregateFunctions.MIN:
+            function = "MIN(" + column_name + ")"
+        elif func_type == AggregateFunctions.SUM:
+            function = "SUM(" + column_name + ")"
+        else:
+            function = None
+        return function

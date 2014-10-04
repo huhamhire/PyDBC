@@ -87,3 +87,23 @@ class ValueTypes(object):
 class RelationTypes(object):
     AND = 0
     OR = 1
+
+
+class AggregateFunctions(object):
+    """
+    Defines the constants that are used to identify generic SQL aggregate
+    functions.
+
+    .. note:: This class is never instantiated.
+
+    :cvar int AVG: Type code that identifies the generic SQL function `AVG`.
+    :cvar int COUNT: Type code that identifies the generic SQL function `COUNT`.
+    :cvar int SUM: Type code that identifies the generic SQL function `SUM`.
+    :cvar int MAX: Type code that identifies the generic SQL function `MAX`.
+    :cvar int MIN: Type code that identifies the generic SQL function `MIN`.
+    """
+    AVG = 0
+    COUNT = 1
+    SUM = 2
+    MAX = 3
+    MIN = 4
