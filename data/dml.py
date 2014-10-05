@@ -22,24 +22,76 @@ from .dialect import Dialect
 from .sqlutils import SQLUtils
 
 
-###################
-# Basic DML Classes
-###################
-
-
-class ClauseBase(object):
+##################
+# DML base classes
+##################
+class DMLBase(object):
     """
-    Base class of SQL clause classes.
 
     :ivar str _raw_sql: RAW SQL statement to be used after the clause keyword.
         If this property is set, the RAW statement would be used directly in the
         SQL clause without other details.
+    """
+    __metaclass__ = ABCMeta
+
+    _raw_sql = None
+
+    @abstractmethod
+    def to_sql(self, dialect):
+        """
+        Convert statement object to a SQL statement.
+
+        .. note:: This is an abstract method.
+
+        :param dialect: SQL dialect to generate statements to work with
+            different databases. This dialect should be an instance of
+            :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL statement.
+        :rtype: str
+        """
+        pass
+
+    @abstractmethod
+    def create_keyword(self):
+        """
+        Create the keyword string of current statement.
+
+        .. note:: This is an abstract method.
+
+        :return: Keyword string of current statement.
+        :rtype: str
+        """
+        pass
+
+    def set_raw_sql(self, sql):
+        """
+        Set the RAW SQL statement.
+
+        :param sql: RAW SQL statement after the statement keyword.
+        :type sql: str
+        """
+        self._raw_sql = sql
+
+    def get_raw_sql(self):
+        """
+        Get the RAW SQL statement.
+
+        :return: RAW SQL statement after the statement keyword.
+        :rtype: str
+        """
+        return self._raw_sql
+
+
+class ClauseBase(DMLBase):
+    """
+    Base class of SQL clause classes.
+
     :ivar list _columns: List of column attributes for a SQL statement clause to
         use.
     """
     __metaclass__ = ABCMeta
 
-    _raw_sql = None
     _columns = []
 
     @abstractmethod
@@ -79,24 +131,6 @@ class ClauseBase(object):
         """
         pass
 
-    def set_raw_sql(self, sql):
-        """
-        Set the RAW SQL statement.
-
-        :param sql: RAW SQL statement after the clause keyword.
-        :type sql: str
-        """
-        self._raw_sql = sql
-
-    def get_raw_sql(self):
-        """
-        Get the RAW SQL statement.
-
-        :return: RAW SQL statement after the clause keyword.
-        :rtype: str
-        """
-        return self._raw_sql
-
     def get_size(self):
         """
         Get number of the columns in current clause.
@@ -115,10 +149,8 @@ class ClauseBase(object):
 
 
 #####################
-# Generic SQL Clauses
+# Generic SQL clauses
 #####################
-
-
 class Where(ClauseBase):
     """
     Create SQL `WHERE` clause to filter records.
@@ -308,6 +340,61 @@ class Having(ClauseBase):
         return " HAVING "
 
 
+class GroupBy(ClauseBase):
+    """
+    Create SQL `GROUP BY` clause to to group the result-set by one or more
+    columns.
+
+    .. note:: This class is subclass of :class:`ClauseBase`.
+    """
+    def add_column(self, column_name):
+        """
+        Add column to group the result.
+
+        :param column_name: Column name of target column to group.
+        :type column_name: str
+        """
+        self._columns.append(column_name)
+
+    def to_sql(self, dialect):
+        """
+        Convert `GroupBy` object to be component of SQL statement.
+
+        :param dialect: SQL dialect to generate statements to work with
+            different databases. This dialect should be an instance of
+            :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL `GroupBy` clause.
+        :rtype: str
+        """
+        sql_buffer = []
+        need_comma = False
+        if self._raw_sql:
+            # Use raw SQL statement if exists
+            sql_buffer.append(self.create_keyword())
+            sql_buffer.append(self._raw_sql)
+        elif self.get_size() > 0:
+            sql_buffer.append(self.create_keyword())
+            for column_name in self._columns:
+                # Add comma
+                if need_comma:
+                    sql_buffer.append(", ")
+                else:
+                    need_comma = True
+                # Add column name
+                sql_buffer.append(dialect.column2sql(column_name))
+        return "".join(sql_buffer)
+
+    def create_keyword(self):
+        """
+        Create the keyword string of SQL `GROUP BY` clause.
+
+        :return: Keyword string of SQL `GROUP BY` clause.
+        :rtype: str
+        """
+        return " GROUP BY "
+
+
 class OrderBy(ClauseBase):
     """
     Create SQL `ORDER BY` clause to sort the result-set by one or more columns.
@@ -369,83 +456,176 @@ class OrderBy(ClauseBase):
         return " ORDER BY "
 
 
-class GroupBy(ClauseBase):
+########################
+# Generic DML statements
+########################
+class Select(DMLBase):
     """
-    Create SQL `GROUP BY` clause to to group the result-set by one or more
-    columns.
+    Create SQL `SELECT` statement to select data from a database.
 
-    .. note:: This class is subclass of :class:`ClauseBase`.
+    :cvar bool _distinct: A boolean indicating whether to use `DISTINCT` keyword
+        in the SQL `SELECT` statement or not.
+    :cvar list _columns:
+
+    :cvar Where _where: Object to create SQL `WHERE` clause to filter records.
+    :cvar Having _having: Object to create SQL `HAVING` clause to filter records
+        with aggregate functions.
+    :cvar GroupBy _group_by: Object to create SQL `GROUP BY` clause to to group
+        the result-set by one or more columns.
+    :cvar OrderBy _order_by: Object to create SQL `ORDER BY` clause to sort the
+        result-set by one or more columns.
     """
-    def add_column(self, column_name):
+    _distinct = False
+    _columns = []
+    _table = None
+    _where = None
+    _having = None
+    _group_by = None
+    _order_by = None
+
+    def add_column(self, column_name, aggr_func, alias):
         """
-        Add column to group the result.
+        Add column for selecting data from.
 
-        :param column_name: Column name of target column to group.
+        :param column_name: Column name of target column to select.
         :type column_name: str
+        :param aggr_func: Aggregate function for calculating records.
+        :type aggr_func: AggregateFunctions
+        :param alias: Temporarily SQL alias name for the target column.
+        :type alias: str
         """
-        self._columns.append(column_name)
+        if column_name is not None:
+            self._columns.append({
+                "name": column_name,
+                "func": aggr_func,
+                "alias": alias
+            })
+
+    def set_distinct(self, distinct):
+        """
+        Set whether to use `DISTINCT` keyword in the SQL `SELECT` statement or
+        not.
+
+        :param distinct: A boolean indicating whether to return only distinct
+            (different) values or not.
+        :type distinct: bool
+        """
+        self._distinct = distinct
+
+    def set_where(self, where):
+        """
+        Set DML `Where` object for creating SQL `SELECT` statement.
+
+        :param where: Object to create SQL `WHERE` clause to filter records.
+        :type where: Where
+        """
+        self._where = where
+
+    def get_where(self):
+        """
+        Get DML `Where` object of SQL `SELECT` statement.
+
+        :return: Object to create SQL `WHERE` clause to filter records.
+        :rtype: Where
+        """
+        return self._where
+
+    def set_having(self, having):
+        """
+        Set DML `Having` object for creating SQL `SELECT` statement.
+
+        :param having: Object to create SQL `ORDER BY` clause to sort the
+            result-set by one or more columns.
+        :type having: Having
+        """
+        self._having = having
+
+    def get_having(self):
+        """
+        Get DML `Having` object of SQL `SELECT` statement.
+
+        :return: Object to create SQL `ORDER BY` clause to sort the result-set
+            by one or more columns.
+        :rtype: Having
+        """
+        return self._having
+
+    def set_group_by(self, group_by):
+        """
+        Set DML `GroupBy` object for creating SQL `SELECT` statement.
+
+        :param group_by: Object to create SQL `GROUP BY` clause to to group the
+            result-set by one or more columns.
+        :type group_by: GroupBy
+        """
+        self._group_by = group_by
+
+    def get_group_by(self):
+        """
+        Get DML `GroupBy` object of SQL `SELECT` statement.
+
+        :return: Object to create SQL `GROUP BY` clause to to group the
+            result-set by one or more columns.
+        :rtype: GroupBy
+        """
+        return self._group_by
+
+    def set_order_by(self, order_by):
+        """
+        Set DML `OrderBy` object for creating SQL `SELECT` statement.
+
+        :param order_by: Object to create SQL `ORDER BY` clause to sort the
+            result-set by one or more columns.
+        :type order_by: OrderBy
+        """
+        self._order_by = order_by
+
+    def get_order_by(self):
+        """
+        Get DML `OrderBy` object of SQL `SELECT` statement.
+
+        :return: Object to create SQL `ORDER BY` clause to sort the  result-set
+            by one or more columns.
+        :rtype: OrderBy
+        """
+        return self._order_by
+
+    def create_keyword(self):
+        """
+        Create the keyword string of SQL `SELECT` statement.
+
+        :return: Keyword string of SQL `SELECT` statement.
+        :rtype: str
+        """
+        if self._distinct:
+            return "SELECT DISTINCT "
+        else:
+            return "SELECT "
 
     def to_sql(self, dialect):
         """
-        Convert `GroupBy` object to be component of SQL statement.
+        Convert `Select` object to be a SQL `SELECT` statement.
 
         :param dialect: SQL dialect to generate statements to work with
             different databases. This dialect should be an instance of
             :class:`Dialect` class.
         :type dialect: Dialect
-        :return: A string of SQL `GroupBy` clause.
+        :return: A string of SQL `SELECT` statement.
         :rtype: str
         """
         sql_buffer = []
-        need_comma = False
         if self._raw_sql:
             # Use raw SQL statement if exists
             sql_buffer.append(self.create_keyword())
             sql_buffer.append(self._raw_sql)
-        elif self.get_size() > 0:
+        elif len(self._columns) > 0:
             sql_buffer.append(self.create_keyword())
-            for column_name in self._columns:
-                # Add comma
-                if need_comma:
-                    sql_buffer.append(", ")
-                else:
-                    need_comma = True
-                # Add column name
-                sql_buffer.append(dialect.column2sql(column_name))
+            if self._where:
+                sql_buffer.append(self._where.to_sql(dialect))
+            if self._having:
+                sql_buffer.append(self._having.to_sql(dialect))
+            if self._group_by:
+                sql_buffer.append(self._group_by.to_sql(dialect))
+            if self._order_by:
+                sql_buffer.append(self._order_by.to_sql(dialect))
         return "".join(sql_buffer)
-
-    def create_keyword(self):
-        """
-        Create the keyword string of SQL `GROUP BY` clause.
-
-        :return: Keyword string of SQL `GROUP BY` clause.
-        :rtype: str
-        """
-        return " GROUP BY "
-
-
-########################
-# Generic DML statements
-########################
-
-
-class Select(object):
-    _columns = []
-    _where = None
-    _order_by = None
-
-    def set_where(self, where):
-        self._where = where
-
-    def get_where(self):
-        return self._where
-
-    def set_order_by(self, order_by):
-        self._order_by = order_by
-
-    def get_order_by(self):
-        return self._order_by
-
-    def add_column(self, column_name):
-        if column_name is not None:
-            self._columns.append(column_name)
