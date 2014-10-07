@@ -22,11 +22,14 @@ from .dialect import Dialect
 from .sqlutils import SQLUtils
 
 
-##################
-# DML base classes
-##################
+# =================
+# DML base classes:
+#   1. DMLBase
+#   2. ClauseBase
+# =================
 class DMLBase(object):
     """
+    Base class for creating DML statements.
 
     :ivar str _raw_sql: RAW SQL statement to be used after the clause keyword.
         If this property is set, the RAW statement would be used directly in the
@@ -52,17 +55,15 @@ class DMLBase(object):
         """
         pass
 
-    @abstractmethod
     def create_keyword(self):
         """
         Create the keyword string of current statement.
 
-        .. note:: This is an abstract method.
-
-        :return: Keyword string of current statement.
+        :return: Keyword string of current statement. Default by an empty
+            string.
         :rtype: str
         """
-        pass
+        return ""
 
     def set_raw_sql(self, sql):
         """
@@ -104,22 +105,6 @@ class ClauseBase(DMLBase):
         pass
 
     @abstractmethod
-    def to_sql(self, dialect):
-        """
-        Convert clause object to be component of SQL statement.
-
-        .. note:: This is an abstract method.
-
-        :param dialect: SQL dialect to generate statements to work with
-            different databases. This dialect should be an instance of
-            :class:`Dialect` class.
-        :type dialect: Dialect
-        :return: A string of SQL clause.
-        :rtype: str
-        """
-        pass
-
-    @abstractmethod
     def create_keyword(self):
         """
         Create the keyword string of current clause.
@@ -130,6 +115,31 @@ class ClauseBase(DMLBase):
         :rtype: str
         """
         pass
+
+    def to_sql(self, dialect):
+        """
+        Convert clause object to be component of SQL statement.
+
+        :param dialect: SQL dialect to generate statements to work with
+            different databases. This dialect should be an instance of
+            :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL clause.
+        :rtype: str
+        """
+        sql_buffer = []
+        if self._raw_sql:
+            # Use raw SQL statement if exists
+            sql_buffer.append(self.create_keyword())
+            sql_buffer.append(self._raw_sql)
+        elif self.get_size() > 0:
+            sql_buffer.append(self.create_keyword())
+            for col in self._columns:
+                # Add column SQL
+                column = col.to_sql(dialect)
+                if column is not None:
+                    sql_buffer.append(column)
+        return "".join(sql_buffer)
 
     def get_size(self):
         """
@@ -148,9 +158,135 @@ class ClauseBase(DMLBase):
         self._columns = []
 
 
-#####################
-# Generic SQL clauses
-#####################
+# ========================
+# DML Exceptions:
+#   1. NoneColumnNameError
+# ========================
+class NoneColumnNameError(ValueError):
+    """
+    The error raised if the column name is `None`.
+    """
+    def __init__(self):
+        """
+        Initialize NoneColumnNameError.
+        """
+        msg = "Column name must not be 'None'!"
+        super(NoneColumnNameError, self).__init__(msg)
+
+
+# =====================
+# Basic SQL Components:
+#   1. Table
+#   2. Column
+# =====================
+class Table(DMLBase):
+    _tables = []
+
+    def to_sql(self, dialect):
+        pass
+
+
+class Column(DMLBase):
+    """
+    Create basic SQL component `COLUMN` in a SQL statement.
+
+    .. note:: This class is subclass of :class:`DMLBase`.
+
+    :ivar str name: Column name of target column.
+    :ivar AggregateFunctions func: Aggregate function to filter records.
+    :ivar object value: Value for target column.
+    :ivar ValueTypes type: Column data type of target column.
+    :ivar CompareTypes compare: Type of comparison between record value and
+        target value.
+    :ivar RelationTypes relation: Type of relation between different criterion.
+    :ivar str alias: Temporarily SQL alias name for the target column
+    :ivar bool asc: Sort the records of target column in ascending order or in a
+        descending order.
+    :ivar bool is_first: A boolean indicating if current column is the first
+        column in a column list.
+    """
+    name = ""
+    func = None
+    value = None
+    type = None
+    compare = None
+    relation = None
+    alias = None
+    asc = True
+    is_first = True
+
+    def __init__(self, name, is_first):
+        """
+        Initialize a `Column` object.
+
+        :param name: Column name of target column.
+        :type name: str
+        :param is_first: A boolean indicating if current column is the first
+            column in a column list.
+        :type is_first: bool
+        :raises NoneColumnNameError: If column name is `None`.
+        """
+        if name is not None:
+            self.name = name
+            self.is_first = is_first
+        else:
+            raise NoneColumnNameError
+
+    def to_sql(self, dialect):
+        """
+        Convert column object to be component of SQL statement.
+
+        :param dialect: SQL dialect to generate statements to work with
+            different databases. This dialect should be an instance of
+            :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL clause.
+        :rtype: str
+        """
+        col_buffer = []
+        # Ignore column values with " or '
+        if self.value is not None and ("'" in self.value or "\"" in self.value):
+            return None
+        if not self.is_first:
+            if self.relation is not None:
+                # Add relation key word
+                col_buffer.append(SQLUtils.get_sql_relation(self.relation))
+            else:
+                # Add comma
+                col_buffer.append(", ")
+        if self.func is None:
+            # Add column name
+            col_buffer.append(dialect.column2sql(self.name))
+            # Add order type
+            if not self.asc:
+                col_buffer.append(SQLUtils.get_sql_order_type(self.asc))
+        else:
+            # Add aggregate function
+            func = SQLUtils.get_aggr_func_with_column(
+                self.func, dialect.column2sql(self.name))
+            col_buffer.append(func)
+        # Add operator & value
+        if self.compare is not None and self.value is not None:
+            op, val = SQLUtils.get_operator_with_value(
+                self.compare, self.value)
+            col_buffer.append(op)
+            if self.type == ValueTypes.STRING:
+                val = "".join(["'", val, "'"])
+            col_buffer.append(val)
+        # Add alias
+        if self.alias is not None:
+            col_buffer.append(SQLUtils.get_sql_as_keyword())
+            col_buffer.append(self.alias)
+        return "".join(col_buffer)
+
+
+# ====================
+# Generic SQL clauses:
+#   1. Where
+#   2. Having
+#   3. GroupBy
+#   4. OrderBy
+# ====================
 class Where(ClauseBase):
     """
     Create SQL `WHERE` clause to filter records.
@@ -176,62 +312,22 @@ class Where(ClauseBase):
         :type compare_type: CompareTypes
         :param relation_type: Type of relation between different criterion.
         :type relation_type: RelationTypes
+        :raises NoneColumnNameError: If column name is `None`.
 
         .. seealso:: :class:`~.constants.ValueTypes`,
             :class:`~.constants.CompareTypes` and
             :class:`~.constants.RelationTypes`.
         """
         if column_name is not None:
-            self._columns.append({
-                "name": column_name,
-                "value": column_value,
-                "type": column_type,
-                "compare": compare_type,
-                "relation": relation_type
-            })
-
-    def to_sql(self, dialect):
-        """
-        Convert `Where` object to be component of SQL statement.
-
-        :param dialect: SQL dialect to generate statements to work with
-            different databases. This dialect should be an instance of
-            :class:`Dialect` class.
-        :type dialect: Dialect
-        :return: A string of SQL `WHERE` clause.
-        :rtype: str
-        """
-        sql_buffer = []
-        need_relation = False
-        if self._raw_sql:
-            # Use raw SQL statement if exists
-            sql_buffer.append(self.create_keyword())
-            sql_buffer.append(self._raw_sql)
-        elif self.get_size() > 0:
-            sql_buffer.append(self.create_keyword())
-            for column in self._columns:
-                column_buffer = []
-                # Ignore column values with " or '
-                if "'" in column["value"] or "\"" in column["value"]:
-                    continue
-                # Add relation key word
-                if need_relation:
-                    relation = SQLUtils.get_sql_relation(column["relation"])
-                    column_buffer.append(relation)
-                else:
-                    need_relation = True
-                # Add column name
-                column_buffer.append(dialect.column2sql(column["name"]))
-                # Add operator & value
-                value = column["value"]
-                op, val = SQLUtils.get_operator_with_value(
-                    column["compare"], value)
-                column_buffer.append(op)
-                if column["type"] == ValueTypes.STRING:
-                    val = "".join(["'", val, "'"])
-                column_buffer.append(val)
-                sql_buffer.append("".join(column_buffer))
-        return "".join(sql_buffer)
+            is_first = self.get_size() == 0
+            col = Column(column_name, is_first)
+            col.value = column_value
+            col.type = column_type
+            col.compare = compare_type
+            col.relation = relation_type
+            self._columns.append(col)
+        else:
+            raise NoneColumnNameError
 
     def create_keyword(self):
         """
@@ -270,65 +366,23 @@ class Having(ClauseBase):
         :type compare_type: CompareTypes
         :param relation_type: Type of relation between different criterion.
         :type relation_type: RelationTypes
+        :raises NoneColumnNameError: If column name is `None`.
 
         .. seealso:: :class:`~.constants.ValueTypes`,
             :class:`~.constants.CompareTypes` and
             :class:`~.constants.RelationTypes`.
         """
         if column_name is not None:
-            self._columns.append({
-                "name": column_name,
-                "func": aggr_func,
-                "value": column_value,
-                "type": column_type,
-                "compare": compare_type,
-                "relation": relation_type
-            })
-
-    def to_sql(self, dialect):
-        """
-        Convert `Having` object to be component of SQL statement.
-
-        :param dialect: SQL dialect to generate statements to work with
-            different databases. This dialect should be an instance of
-            :class:`Dialect` class.
-        :type dialect: Dialect
-        :return: A string of SQL `HAVING` clause.
-        :rtype: str
-        """
-        sql_buffer = []
-        need_relation = False
-        if self._raw_sql:
-            # Use raw SQL statement if exists
-            sql_buffer.append(self.create_keyword())
-            sql_buffer.append(self._raw_sql)
-        elif self.get_size() > 0:
-            sql_buffer.append(self.create_keyword())
-            for column in self._columns:
-                column_buffer = []
-                # Ignore column values with " or '
-                if "'" in column["value"] or "\"" in column["value"]:
-                    continue
-                # Add relation key word
-                if need_relation:
-                    relation = SQLUtils.get_sql_relation(column["relation"])
-                    column_buffer.append(relation)
-                else:
-                    need_relation = True
-                # Add aggregate function
-                func = SQLUtils.get_aggr_func_with_column(
-                    column["func"], dialect.column2sql(column["name"]))
-                column_buffer.append(func)
-                # Add operator & value
-                value = column["value"]
-                op, val = SQLUtils.get_operator_with_value(
-                    column["compare"], value)
-                column_buffer.append(op)
-                if column["type"] == ValueTypes.STRING:
-                    val = "".join(["'", val, "'"])
-                column_buffer.append(val)
-                sql_buffer.append("".join(column_buffer))
-        return "".join(sql_buffer)
+            is_first = self.get_size() == 0
+            col = Column(column_name, is_first)
+            col.func = aggr_func
+            col.value = column_value
+            col.type = column_type
+            col.compare = compare_type
+            col.relation = relation_type
+            self._columns.append(col)
+        else:
+            raise NoneColumnNameError
 
     def create_keyword(self):
         """
@@ -353,37 +407,14 @@ class GroupBy(ClauseBase):
 
         :param column_name: Column name of target column to group.
         :type column_name: str
+        :raises NoneColumnNameError: If column name is `None`.
         """
-        self._columns.append(column_name)
-
-    def to_sql(self, dialect):
-        """
-        Convert `GroupBy` object to be component of SQL statement.
-
-        :param dialect: SQL dialect to generate statements to work with
-            different databases. This dialect should be an instance of
-            :class:`Dialect` class.
-        :type dialect: Dialect
-        :return: A string of SQL `GroupBy` clause.
-        :rtype: str
-        """
-        sql_buffer = []
-        need_comma = False
-        if self._raw_sql:
-            # Use raw SQL statement if exists
-            sql_buffer.append(self.create_keyword())
-            sql_buffer.append(self._raw_sql)
-        elif self.get_size() > 0:
-            sql_buffer.append(self.create_keyword())
-            for column_name in self._columns:
-                # Add comma
-                if need_comma:
-                    sql_buffer.append(", ")
-                else:
-                    need_comma = True
-                # Add column name
-                sql_buffer.append(dialect.column2sql(column_name))
-        return "".join(sql_buffer)
+        if column_name is not None:
+            is_first = self.get_size() == 0
+            col = Column(column_name, is_first)
+            self._columns.append(col)
+        else:
+            raise NoneColumnNameError
 
     def create_keyword(self):
         """
@@ -410,41 +441,15 @@ class OrderBy(ClauseBase):
         :param asc: Sort the records in ascending order or in a descending
             order. Default by "True(ascending)".
         :type asc: bool
+        :raises NoneColumnNameError: If column name is `None`.
         """
         if column_name is not None:
-            self._columns.append({
-                "name": column_name,
-                "asc": asc
-            })
-
-    def to_sql(self, dialect):
-        """
-        Convert `OrderBy` object to be component of SQL statement.
-
-        :param dialect: SQL dialect to generate statements to work with
-            different databases. This dialect should be an instance of
-            :class:`Dialect` class.
-        :type dialect: Dialect
-        :return: A string of SQL `ORDER BY` clause.
-        :rtype: str
-        """
-        sql_buffer = []
-        if self._raw_sql:
-            # Use raw SQL statement if exists
-            sql_buffer.append(self.create_keyword())
-            sql_buffer.append(self._raw_sql)
-        elif self.get_size() > 0:
-            sql_buffer.append(self.create_keyword())
-            for column in self._columns:
-                # Add column name
-                sql_buffer.append(dialect.column2sql(column["name"]))
-                # Add order type
-                sql_buffer.append(SQLUtils.get_sql_order_type(column["asc"]))
-                # Add comma
-                sql_buffer.append(", ")
-            # remove last comma
-            sql_buffer.pop()
-        return "".join(sql_buffer)
+            is_first = self.get_size() == 0
+            col = Column(column_name, is_first)
+            col.asc = asc
+            self._columns.append(col)
+        else:
+            raise NoneColumnNameError
 
     def create_keyword(self):
         """
@@ -456,9 +461,10 @@ class OrderBy(ClauseBase):
         return " ORDER BY "
 
 
-########################
-# Generic DML statements
-########################
+# =======================
+# Generic DML statements:
+#   1. Select
+# =======================
 class Select(DMLBase):
     """
     Create SQL `SELECT` statement to select data from a database.
@@ -483,23 +489,28 @@ class Select(DMLBase):
     _group_by = None
     _order_by = None
 
-    def add_column(self, column_name, aggr_func, alias):
+    def add_column(self, column_name, aggr_func=None, alias=None):
         """
         Add column for selecting data from.
 
         :param column_name: Column name of target column to select.
         :type column_name: str
-        :param aggr_func: Aggregate function for calculating records.
+        :param aggr_func: Aggregate function for calculating records. Default by
+            `None`.
         :type aggr_func: AggregateFunctions
-        :param alias: Temporarily SQL alias name for the target column.
+        :param alias: Temporarily SQL alias name for the target column. Default
+            by `None`.
         :type alias: str
+        :raises NoneColumnNameError: If column name is `None`.
         """
         if column_name is not None:
-            self._columns.append({
-                "name": column_name,
-                "func": aggr_func,
-                "alias": alias
-            })
+            is_first = len(self._columns) == 0
+            column = Column(column_name, is_first)
+            column.func = aggr_func
+            column.alias = alias
+            self._columns.append(column)
+        else:
+            raise NoneColumnNameError
 
     def set_distinct(self, distinct):
         """
@@ -620,6 +631,9 @@ class Select(DMLBase):
             sql_buffer.append(self._raw_sql)
         elif len(self._columns) > 0:
             sql_buffer.append(self.create_keyword())
+            for col in self._columns:
+                # Add column SQL
+                sql_buffer.append(col.to_sql(dialect))
             if self._where:
                 sql_buffer.append(self._where.to_sql(dialect))
             if self._having:

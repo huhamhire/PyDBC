@@ -79,6 +79,10 @@ class SQLUtils(object):
             return " ASC"
 
     @staticmethod
+    def get_sql_as_keyword():
+        return " AS "
+
+    @staticmethod
     def get_aggr_func_with_column(func_type, column_name):
         if func_type == AggregateFunctions.AVG:
             function = "AVG(" + column_name + ")"
