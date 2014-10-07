@@ -95,6 +95,10 @@ class ClauseBase(DMLBase):
 
     _columns = []
 
+    def __init__(self):
+        super(ClauseBase, self).__init__()
+        self._columns = []
+
     @abstractmethod
     def add_column(self, *args, **kwargs):
         """
@@ -245,8 +249,9 @@ class Column(DMLBase):
         """
         col_buffer = []
         # Ignore column values with " or '
-        if self.value is not None and ("'" in self.value or "\"" in self.value):
-            return None
+        if self.value is not None and self.type == ValueTypes.STRING:
+            if "'" in self.value or "\"" in self.value:
+                return None
         if not self.is_first:
             if self.relation is not None:
                 # Add relation key word
@@ -272,7 +277,7 @@ class Column(DMLBase):
             col_buffer.append(op)
             if self.type == ValueTypes.STRING:
                 val = "".join(["'", val, "'"])
-            col_buffer.append(val)
+            col_buffer.append(str(val))
         # Add alias
         if self.alias is not None:
             col_buffer.append(SQLUtils.get_sql_as_keyword())

@@ -16,7 +16,7 @@ __author__ = "huhamhire <me@huhamhire.com>"
 
 
 class Dialect(object):
-    _column_quote = None
+    _column_quote = ""
 
     def column2sql(self, column_name):
         return "".join([self._column_quote, column_name, self._column_quote])
