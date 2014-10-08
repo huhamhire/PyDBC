@@ -165,6 +165,7 @@ class ClauseBase(DMLBase):
 # ========================
 # DML Exceptions:
 #   1. NoneColumnNameError
+#   2. NoneTableNameError
 # ========================
 class NoneColumnNameError(ValueError):
     """
@@ -176,6 +177,18 @@ class NoneColumnNameError(ValueError):
         """
         msg = "Column name must not be 'None'!"
         super(NoneColumnNameError, self).__init__(msg)
+
+
+class NoneTableNameError(ValueError):
+    """
+    The error raised if the table name is `None`.
+    """
+    def __init__(self):
+        """
+        Initialize NoneTableNameError.
+        """
+        msg = "Table name must not be 'None'!"
+        super(NoneTableNameError, self).__init__(msg)
 
 
 # =====================

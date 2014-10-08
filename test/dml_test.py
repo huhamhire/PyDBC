@@ -16,12 +16,13 @@ __author__ = "huhamhire <me@huhamhire.com>"
 
 import unittest
 
-from data.dml import Where
+from data.dml import Where, Having
 from data.dialect import Dialect
-from data.constants import ValueTypes, CompareTypes, RelationTypes
+from data.constants import (
+    ValueTypes, CompareTypes, RelationTypes, AggregateFunctions)
 
 
-class WhereSQLTestCase(unittest.TestCase):
+class WhereTestCase(unittest.TestCase):
     class TestColumns(object):
         basic_int = {
             "column_name": "alpha",
@@ -49,43 +50,82 @@ class WhereSQLTestCase(unittest.TestCase):
     def setUp(self):
         self.where = Where()
         self.dialect = Dialect()
-        self.columns = self.TestColumns()
 
     def tearDown(self):
-        self.where = None
+        self.where.clear()
 
     def test_one_column_int(self):
-        self.where.add_column(**self.columns.basic_int)
+        self.where.add_column(**self.TestColumns.basic_int)
         expected = " WHERE alpha=1"
         result = self.where.to_sql(self.dialect)
-        self.assertEqual(expected, result)
+        self.assertEqual(result, expected)
 
     def test_one_column_int_compare(self):
-        self.where.add_column(**self.columns.basic_int_less_equal)
+        self.where.add_column(**self.TestColumns.basic_int_less_equal)
         expected = " WHERE alpha<=1"
         result = self.where.to_sql(self.dialect)
-        self.assertEqual(expected, result)
+        self.assertEqual(result, expected)
 
     def test_one_column_str(self):
-        self.where.add_column(**self.columns.basic_str)
+        self.where.add_column(**self.TestColumns.basic_str)
         expected = " WHERE foo='bar'"
         result = self.where.to_sql(self.dialect)
-        self.assertEqual(expected, result)
+        self.assertEqual(result, expected)
 
     def test_two_columns_mixed(self):
-        self.where.add_column(**self.columns.basic_int_less_equal)
-        self.where.add_column(**self.columns.basic_str)
+        self.where.add_column(**self.TestColumns.basic_int_less_equal)
+        self.where.add_column(**self.TestColumns.basic_str)
         expected = " WHERE alpha<=1 AND foo='bar'"
         result = self.where.to_sql(self.dialect)
-        self.assertEqual(expected, result)
+        self.assertEqual(result, expected)
 
     def test_two_columns_relation(self):
-        self.where.add_column(**self.columns.basic_int)
-        self.where.add_column(**self.columns.basic_str_relation_or)
+        self.where.add_column(**self.TestColumns.basic_int)
+        self.where.add_column(**self.TestColumns.basic_str_relation_or)
         expected = " WHERE alpha=1 OR foo='bar'"
         result = self.where.to_sql(self.dialect)
-        self.assertEqual(expected, result)
+        self.assertEqual(result, expected)
+
+
+class HavingTestCase(unittest.TestCase):
+    class TestColumns(object):
+        basic_int_avg = {
+            "column_name": "alpha",
+            "aggr_func": AggregateFunctions.AVG,
+            "column_value": 1,
+            "column_type": ValueTypes.INTEGER
+        }
+        basic_int_less_equal = {
+            "column_name": "beta",
+            "aggr_func": AggregateFunctions.SUM,
+            "column_value": 100,
+            "column_type": ValueTypes.INTEGER,
+            "compare_type": CompareTypes.LESS_THAN_OR_EQUAL,
+            "relation_type": RelationTypes.OR
+        }
+
+    def setUp(self):
+        self.having = Having()
+        self.dialect = Dialect()
+
+    def tearDown(self):
+        self.having.clear()
+
+    def test_one_column_int_avg(self):
+        self.having.add_column(**self.TestColumns.basic_int_avg)
+        expected = " HAVING AVG(alpha)=1"
+        result = self.having.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_two_column_int_sum_or(self):
+        self.having.add_column(**self.TestColumns.basic_int_avg)
+        self.having.add_column(**self.TestColumns.basic_int_less_equal)
+        expected = " HAVING AVG(alpha)=1 OR SUM(beta)<=100"
+        result = self.having.to_sql(self.dialect)
+        self.assertEqual(result, expected)
 
 if __name__ == "__main__":
-    where_test_suite = unittest.makeSuite(WhereSQLTestCase, "test")
-    unittest.TextTestRunner(verbosity=1).run(where_test_suite)
+    where_test_suite = unittest.makeSuite(WhereTestCase, "test")
+    having_test_suite = unittest.makeSuite(HavingTestCase, "test")
+    dml_test = unittest.TestSuite((where_test_suite, having_test_suite))
+    unittest.TextTestRunner(verbosity=1).run(dml_test)

@@ -16,7 +16,11 @@ __author__ = "huhamhire <me@huhamhire.com>"
 
 
 class Dialect(object):
+    _table_quote = ""
     _column_quote = ""
 
     def column2sql(self, column_name):
         return "".join([self._column_quote, column_name, self._column_quote])
+
+    def table2sql(self, table_name):
+        return "".join([self._table_quote, table_name, self._table_quote])
