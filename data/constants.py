@@ -89,6 +89,29 @@ class RelationTypes(object):
     OR = 1
 
 
+class JoinTypes(object):
+    """
+    Defines the constants that are used to identify generic SQL join types.
+
+    .. note:: This class is never instantiated.
+
+    :cvar int INNER_JOIN: Type code that identifies the generic SQL join type
+        which returns all rows when there is at least one match in BOTH tables.
+    :cvar int LEFT_JOIN: Type code that identifies the generic SQL join type
+        which returns all rows from the left table, and the matched rows from
+        the right table.
+    :cvar int RIGHT_JOIN: Type code that identifies the generic SQL join type
+        which returns all rows from the right table, and the matched rows from
+        the left table.
+    :cvar int FULL_JOIN: Type code that identifies the generic SQL join type
+        which returns all rows when there is a match in ONE of the tables.
+    """
+    INNER_JOIN = 0
+    RIGHT_JOIN = 1
+    LEFT_JOIN = 2
+    FULL_JOIN = 3
+
+
 class AggregateFunctions(object):
     """
     Defines the constants that are used to identify generic SQL aggregate

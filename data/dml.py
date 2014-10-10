@@ -197,9 +197,62 @@ class NoneTableNameError(ValueError):
 #   2. Column
 # =====================
 class Table(DMLBase):
-    _tables = []
+    """
+    Create basic SQL component `COLUMN` in a SQL statement.
+
+    .. note:: This class is subclass of :class:`DMLBase`.
+
+    :ivar str name: Table name of target table.
+    :ivar str alias: Temporarily SQL alias name for the target table or result
+        table.
+    :ivar Select select:
+    """
+    name = None
+    alias = None
+    select = None
+    join = None
+    condition = None
+    is_first = True
+
+    def __init__(self, name=None, alias=None, select=None, is_first=True):
+        """
+        Initialize a `Table` object.
+
+        :param name: Table name of target table.
+        :type name: str
+        :param alias: Temporarily SQL alias name for the target table or result
+            table.
+        :type alias: str
+        :param select:
+        :type select: Select
+        :param is_first: A boolean indicating if current table is the first
+            table in a table list.
+        :type is_first: bool
+        :raises NoneTableNameError: If table name or both of select and alias
+            name is `None`.
+        """
+        if name is not None:
+            self.name = name
+            if alias is not None:
+                self.alias = alias
+        elif select is not None and alias is not None:
+            self.select = select
+            self.alias = alias
+        else:
+            raise NoneTableNameError
+        self.is_first = is_first
 
     def to_sql(self, dialect):
+        """
+        Convert table object to be component of SQL statement.
+
+        :param dialect: SQL dialect to generate statements to work with
+            different databases. This dialect should be an instance of
+            :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL clause.
+        :rtype: str
+        """
         pass
 
 
@@ -232,7 +285,7 @@ class Column(DMLBase):
     asc = True
     is_first = True
 
-    def __init__(self, name, is_first):
+    def __init__(self, name, is_first=True):
         """
         Initialize a `Column` object.
 
