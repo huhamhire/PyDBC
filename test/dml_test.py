@@ -17,10 +17,76 @@ __author__ = "huhamhire <me@huhamhire.com>"
 import re
 import unittest
 
-from data.dml import Where, Having, GroupBy, OrderBy
+from data.dml import (
+    Column, JoinConditions, Where, Having, GroupBy, OrderBy,
+    UnsupportedJoinTypeError)
 from data.dialect import Dialect
 from data.constants import (
     ValueTypes, CompareTypes, RelationTypes, AggregateFunctions)
+
+
+# ========================================
+# Unit tests for auxiliary DML components:
+#   1. JoinConditionsTestCase
+# ========================================
+class JoinConditionsTestCase(unittest.TestCase):
+    """
+    Unittest for generating table join conditions.
+    """
+    def setUp(self):
+        self.condition = JoinConditions()
+        self.dialect = Dialect()
+
+    def tearDown(self):
+        self.condition.clear()
+
+    def test_simple_two_column(self):
+        column_1 = Column("alpha")
+        column_1.table = "foo"
+        column_2 = Column("beta")
+        column_2.table = "bar"
+        self.condition.add_condition(column_1, column_2)
+        expected = " ON foo.alpha=bar.beta"
+        result = self.condition.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_simple_one_column(self):
+        column = Column("alpha")
+        column.table = "foo"
+        column.value = 10
+        column.compare = CompareTypes.LESS_THAN
+        self.condition.add_condition(column)
+        expected = " ON foo.alpha<10"
+        result = self.condition.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_two_conditions(self):
+        column_1 = Column("alpha")
+        column_1.table = "foo"
+        column_2 = Column("beta")
+        column_2.table = "bar"
+        column_3 = Column("alpha")
+        column_3.table = "foo"
+        column_3.value = 10
+        column_3.compare = CompareTypes.LESS_THAN
+        self.condition.add_condition(column_1, column_2)
+        self.condition.add_condition(column_3)
+        expected = " ON foo.alpha=bar.beta AND foo.alpha<10"
+        result = self.condition.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_one_column_error(self):
+        flag = 0
+        column = Column("alpha")
+        column.table = "foo"
+        try:
+            self.condition.add_condition(column)
+            self.condition.to_sql(self.dialect)
+        except UnsupportedJoinTypeError, e:
+            expected = "UnsupportedJoinTypeError"
+            self.assertRaisesRegexp(e, re.compile(expected))
+            flag += 1
+        self.assertEqual(flag, 1)
 
 
 # ===================================
@@ -225,13 +291,14 @@ class OrderByTestCase(unittest.TestCase):
 
 
 def get_dml_test_suite():
-    where_test_suite = unittest.makeSuite(WhereTestCase, "test")
-    having_test_suite = unittest.makeSuite(HavingTestCase, "test")
-    group_by_test_suite = unittest.makeSuite(GroupByTestCase, "test")
-    order_by_test_suite = unittest.makeSuite(OrderByTestCase, "test")
+    join_condition_test = unittest.makeSuite(JoinConditionsTestCase, "test")
+    where_test = unittest.makeSuite(WhereTestCase, "test")
+    having_test = unittest.makeSuite(HavingTestCase, "test")
+    group_by_test = unittest.makeSuite(GroupByTestCase, "test")
+    order_by_test = unittest.makeSuite(OrderByTestCase, "test")
     dml_test = unittest.TestSuite((
-        where_test_suite, having_test_suite, group_by_test_suite,
-        order_by_test_suite
+        where_test, having_test, group_by_test, order_by_test,
+        join_condition_test
     ))
     return dml_test
 

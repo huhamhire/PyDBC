@@ -24,7 +24,7 @@ from .sqlutils import SQLUtils
 
 # =================
 # DML base classes:
-# 1. DMLBase
+#   1. DMLBase
 #   2. ClauseBase
 # =================
 class DMLBase(object):
@@ -426,6 +426,13 @@ class JoinConditions(DMLBase):
     """
     _conditions = []
 
+    def __init__(self):
+        """
+            Initialize a `JoinConditions` object for making SQL join condition.
+        """
+        super(JoinConditions, self).__init__()
+        self._conditions = []
+
     class Condition(DMLBase):
         """
         Sub-condition of a set of SQL join condition.
@@ -497,9 +504,9 @@ class JoinConditions(DMLBase):
             condition.append(self.column_1.to_sql(dialect))
             # Add operator & the second column if needed
             if self.column_1.value is None:
-                col_2 = self.column_2.to_sql(dialect)
-                condition.append(
-                    SQLUtils.get_operator_with_value(self.compare, col_2))
+                operator = SQLUtils.get_operator_with_value(self.compare, "")[0]
+                condition.append(operator)
+                condition.append(self.column_2.to_sql(dialect))
             return "".join(condition)
 
     def add_condition(self, column_1, column_2=None,
@@ -535,6 +542,13 @@ class JoinConditions(DMLBase):
         :rtype: int
         """
         return len(self._conditions)
+
+    def clear(self):
+        """
+        Reset current condition.
+        """
+        self._raw_sql = None
+        self._conditions = []
 
     def create_keyword(self):
         """
