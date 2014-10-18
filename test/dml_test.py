@@ -18,7 +18,7 @@ import re
 import unittest
 
 from data.dml import (
-    Column, JoinConditions, Where, Having, GroupBy, OrderBy,
+    Column, JoinedConditions, Where, Having, GroupBy, OrderBy,
     UnsupportedJoinTypeError)
 from data.dialect import Dialect
 from data.constants import (
@@ -27,14 +27,14 @@ from data.constants import (
 
 # ========================================
 # Unit tests for auxiliary DML components:
-#   1. JoinConditionsTestCase
+#   1. JoinedConditionsTestCase
 # ========================================
-class JoinConditionsTestCase(unittest.TestCase):
+class JoinedConditionsTestCase(unittest.TestCase):
     """
     Unittest for generating table join conditions.
     """
     def setUp(self):
-        self.condition = JoinConditions()
+        self.condition = JoinedConditions()
         self.dialect = Dialect()
 
     def tearDown(self):
@@ -291,7 +291,7 @@ class OrderByTestCase(unittest.TestCase):
 
 
 def get_dml_test_suite():
-    join_condition_test = unittest.makeSuite(JoinConditionsTestCase, "test")
+    join_condition_test = unittest.makeSuite(JoinedConditionsTestCase, "test")
     where_test = unittest.makeSuite(WhereTestCase, "test")
     having_test = unittest.makeSuite(HavingTestCase, "test")
     group_by_test = unittest.makeSuite(GroupByTestCase, "test")
