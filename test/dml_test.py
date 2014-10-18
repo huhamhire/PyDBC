@@ -23,6 +23,13 @@ from data.constants import (
     ValueTypes, CompareTypes, RelationTypes, AggregateFunctions)
 
 
+# ===================================
+# Unit tests for generic SQL clauses:
+#   1. WhereTestCase
+#   2. HavingTestCase
+#   3. GroupByTestCase
+#   4. OrderByTestCase
+# ===================================
 class WhereTestCase(unittest.TestCase):
     """
     Unittest for generating SQL `WHERE` clause.

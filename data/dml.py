@@ -24,7 +24,7 @@ from .sqlutils import SQLUtils
 
 # =================
 # DML base classes:
-#   1. DMLBase
+# 1. DMLBase
 #   2. ClauseBase
 # =================
 class DMLBase(object):
@@ -171,6 +171,7 @@ class NoneColumnNameError(ValueError):
     """
     The error raised if the column name is `None`.
     """
+
     def __init__(self):
         """
         Initialize NoneColumnNameError.
@@ -183,6 +184,7 @@ class NoneTableNameError(ValueError):
     """
     The error raised if the table name is `None`.
     """
+
     def __init__(self):
         """
         Initialize NoneTableNameError.
@@ -195,6 +197,7 @@ class UnsupportedJoinTypeError(ValueError):
     """
     The error raised if the join type between tables is not supported.
     """
+
     def __init__(self):
         """
         Initialize UnsupportedJoinTypeError.
@@ -220,8 +223,8 @@ class Table(DMLBase):
     :ivar Select select: Select object for creating a result table.
     :ivar JoinTypes join: The SQL join type for combining current table with the
         previous table.
-    :ivar Condition condition: The condition for combining current table with
-        the previous table.
+    :ivar JoinConditions condition: The condition for combining current table
+        with the previous table.
     :ivar bool is_first: A boolean indicating if current column is the first
         column in a column list.
 
@@ -272,7 +275,12 @@ class Table(DMLBase):
         :type dialect: Dialect
         :return: A string of SQL clause.
         :rtype: str
+        :raises UnsupportedJoinTypeError: If join type is not specified between
+            different conditions.
         """
+        if self._raw_sql:
+            # Use raw SQL statement if exists
+            return self._raw_sql
         table_buffer = []
         # Add JOIN operator
         if not self.is_first:
@@ -358,6 +366,9 @@ class Column(DMLBase):
         :return: A string of SQL clause.
         :rtype: str
         """
+        if self._raw_sql:
+            # Use raw SQL statement if exists
+            return self._raw_sql
         col_buffer = []
         # Create table name with or without table name
         if self.table is not None:
@@ -403,6 +414,156 @@ class Column(DMLBase):
         return "".join(col_buffer)
 
 
+# =========================
+# Auxiliary DML components:
+#   1. JoinConditions
+# =========================
+class JoinConditions(DMLBase):
+    """
+    Create condition to join tables.
+
+    :ivar list _conditions: List of sub-conditions used in a SQL join condition.
+    """
+    _conditions = []
+
+    class Condition(DMLBase):
+        """
+        Sub-condition of a set of SQL join condition.
+
+        :ivar Column column_1: The first column in a join condition. This column
+            could be transformed into a condition directly if `value` of this
+            column object is not `None`.
+        :ivar Column column_2: The second column in a join condition. This
+            column could be `None` if not required.
+        :ivar CompareTypes compare: Type of comparison between record value and
+            target value.
+        :ivar RelationTypes relation: Type of relation between different \
+            criterion.
+        :ivar bool is_first: A boolean indicating if current column is the first
+            column in a column list.
+        """
+        column_1 = None
+        column_2 = None
+        compare = None
+        relation = None
+        is_first = True
+
+        def __init__(self, column_1, column_2=None,
+                     compare_type=CompareTypes.EQUALS,
+                     relation_type=RelationTypes.AND, is_first=True):
+            """
+            Initialize a `Condition` object for making SQL join condition.
+
+            :param column_1: The first column in a join condition. This column
+                could be transformed into a condition directly if `value` of
+                this column object is not `None`.
+            :type column_1: Column
+            :param column_2: The second column in a join condition. This column
+                could be `None` if not required.
+            :type column_2: Column
+            :param compare_type: Type of comparison between `column_1` and
+                `column_2` value. Default by EQUALS.
+            :type compare_type: CompareTypes
+            :param relation_type: Type of relation between different criterion.
+                Default by AND.
+            :type relation_type: RelationTypes
+            :raises UnsupportedJoinTypeError: If column definition for setting
+                condition is not correct.
+            """
+            if column_1 is None \
+                    or (column_1.value is None and column_2 is None):
+                raise UnsupportedJoinTypeError
+            self.column_1 = column_1
+            self.column_2 = column_2
+            self.compare = compare_type
+            self.relation = relation_type
+            self.is_first = is_first
+
+        def to_sql(self, dialect):
+            """
+            Convert Condition object to be component of SQL statement.
+
+            :param dialect: SQL dialect to generate statements to work with
+                different databases. This dialect should be an instance of
+                :class:`Dialect` class.
+            :type dialect: Dialect
+            :return: A string of SQL condition.
+            :rtype: str
+            """
+            condition = []
+            # Add relation key word
+            if not self.is_first:
+                condition.append(SQLUtils.get_sql_relation(self.relation))
+            condition.append(self.column_1.to_sql(dialect))
+            # Add operator & the second column if needed
+            if self.column_1.value is None:
+                col_2 = self.column_2.to_sql(dialect)
+                condition.append(
+                    SQLUtils.get_operator_with_value(self.compare, col_2))
+            return "".join(condition)
+
+    def add_condition(self, column_1, column_2=None,
+                      compare_type=CompareTypes.EQUALS,
+                      relation_type=RelationTypes.AND):
+        """
+        Add a sub-condition into a set of SQL join condition.
+
+        :param column_1: The first column in a join condition. This column
+            could be transformed into a condition directly if `value` of this
+            column object is not `None`.
+        :type column_1: Column
+        :param column_2: The second column in a join condition. This column
+            could be `None` if not required.
+        :type column_2: Column
+        :param compare_type: Type of comparison between `column_1` and
+            `column_2` value. Default by EQUALS.
+        :type compare_type: CompareTypes
+        :param relation_type: Type of relation between different criterion.
+            Default by AND.
+        :type relation_type: RelationTypes
+        """
+        is_first = self.get_size() == 0
+        self._conditions.append(self.Condition(
+            column_1, column_2, compare_type, relation_type, is_first)
+        )
+
+    def get_size(self):
+        """
+        Get number of the sub-conditions in current join condition.
+
+        :return: Number of the sub-conditions.
+        :rtype: int
+        """
+        return len(self._conditions)
+
+    def create_keyword(self):
+        """
+        Create the keyword string for SQL join condition.
+
+        :return: Keyword string for SQL join condition.
+        :rtype: str
+        """
+        return " ON "
+
+    def to_sql(self, dialect):
+        """
+        Convert JoinConditions object to be component of SQL statement.
+
+        :param dialect: SQL dialect to generate statements to work with
+                different databases. This dialect should be an instance of
+                :class:`Dialect` class.
+        :type dialect: Dialect
+        :return: A string of SQL JOIN condition.
+        :rtype: str
+        """
+        join_buffer = []
+        if self.get_size() > 0:
+            join_buffer.append(self.create_keyword())
+        for condition in self._conditions:
+            join_buffer.append(condition.to_sql(dialect))
+        return "".join(join_buffer)
+
+
 # ====================
 # Generic SQL clauses:
 #   1. Where
@@ -416,6 +577,7 @@ class Where(ClauseBase):
 
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
+
     def add_column(self, column_name, column_value, table_name=None,
                    column_type=ValueTypes.STRING,
                    compare_type=CompareTypes.EQUALS,
@@ -473,6 +635,7 @@ class Having(ClauseBase):
 
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
+
     def add_column(self, column_name, aggr_func, column_value, table_name=None,
                    column_type=ValueTypes.STRING,
                    compare_type=CompareTypes.EQUALS,
@@ -534,6 +697,7 @@ class GroupBy(ClauseBase):
 
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
+
     def add_column(self, column_name, table_name=None):
         """
         Add column to group the result.
@@ -568,6 +732,7 @@ class OrderBy(ClauseBase):
 
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
+
     def add_column(self, column_name, asc=True, table_name=None):
         """
         Add a column for sorting order.
