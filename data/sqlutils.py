@@ -14,7 +14,8 @@
 
 __author__ = "huhamhire <me@huhamhire.com>"
 
-from .constants import CompareTypes, RelationTypes, AggregateFunctions
+from .constants import (
+    CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
 
 
 class SQLUtils(object):
@@ -77,6 +78,19 @@ class SQLUtils(object):
             return " DESC"
         else:
             return " ASC"
+
+    @staticmethod
+    def get_sql_join_operator(join_type):
+        if join_type == JoinTypes.INNER_JOIN:
+            return " INNER JOIN "
+        elif join_type == JoinTypes.RIGHT_JOIN:
+            return " RIGHT JOIN "
+        elif join_type == JoinTypes.LEFT_JOIN:
+            return " LEFT JOIN "
+        elif join_type == JoinTypes.FULL_JOIN:
+            return " FULL JOIN "
+        else:
+            return None
 
     @staticmethod
     def get_sql_as_keyword():

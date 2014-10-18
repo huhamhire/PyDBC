@@ -191,6 +191,18 @@ class NoneTableNameError(ValueError):
         super(NoneTableNameError, self).__init__(msg)
 
 
+class UnsupportedJoinTypeError(ValueError):
+    """
+    The error raised if the join type between tables is not supported.
+    """
+    def __init__(self):
+        """
+        Initialize UnsupportedJoinTypeError.
+        """
+        msg = "Unsupported table join type!"
+        super(UnsupportedJoinTypeError, self).__init__(msg)
+
+
 # =====================
 # Basic SQL Components:
 #   1. Table
@@ -205,7 +217,15 @@ class Table(DMLBase):
     :ivar str name: Table name of target table.
     :ivar str alias: Temporarily SQL alias name for the target table or result
         table.
-    :ivar Select select:
+    :ivar Select select: Select object for creating a result table.
+    :ivar JoinTypes join: The SQL join type for combining current table with the
+        previous table.
+    :ivar Condition condition: The condition for combining current table with
+        the previous table.
+    :ivar bool is_first: A boolean indicating if current column is the first
+        column in a column list.
+
+    .. seealso:: :class:`~.constants.JoinTypes`.
     """
     name = None
     alias = None
@@ -223,7 +243,7 @@ class Table(DMLBase):
         :param alias: Temporarily SQL alias name for the target table or result
             table.
         :type alias: str
-        :param select:
+        :param select: Select object for creating a result table.
         :type select: Select
         :param is_first: A boolean indicating if current table is the first
             table in a table list.
@@ -253,7 +273,30 @@ class Table(DMLBase):
         :return: A string of SQL clause.
         :rtype: str
         """
-        pass
+        table_buffer = []
+        # Add JOIN operator
+        if not self.is_first:
+            join = SQLUtils.get_sql_join_operator(self.join)
+            if join is not None:
+                table_buffer.append(join)
+            else:
+                raise UnsupportedJoinTypeError
+        # Add table
+        if self.name is not None:
+            table_buffer.append(dialect.table2sql(self.name))
+            if self.alias is not None:
+                table_buffer.append(SQLUtils.get_sql_as_keyword())
+        elif self.select is not None and self.alias is not None:
+            table_buffer.append("".join([
+                "(", self.select.to_sql(dialect), ")",
+                SQLUtils.get_sql_as_keyword(), dialect.table2sql(self.alias)
+            ]))
+        else:
+            raise NoneTableNameError
+        # Add join condition
+        if not self.is_first:
+            self.condition.to_sql(dialect)
+        return "".join(table_buffer)
 
 
 class Column(DMLBase):
@@ -263,6 +306,7 @@ class Column(DMLBase):
     .. note:: This class is subclass of :class:`DMLBase`.
 
     :ivar str name: Column name of target column.
+    :ivar str table: Table name or table alias to get column from.
     :ivar AggregateFunctions func: Aggregate function to filter records.
     :ivar object value: Value for target column.
     :ivar ValueTypes type: Column data type of target column.
@@ -276,6 +320,7 @@ class Column(DMLBase):
         column in a column list.
     """
     name = ""
+    table = None
     func = None
     value = None
     type = None
@@ -314,6 +359,14 @@ class Column(DMLBase):
         :rtype: str
         """
         col_buffer = []
+        # Create table name with or without table name
+        if self.table is not None:
+            col_name = "".join([
+                dialect.table2sql(self.table), ".",
+                dialect.column2sql(self.name)
+            ])
+        else:
+            col_name = dialect.column2sql(self.name)
         # Ignore column values with " or '
         if self.value is not None and self.type == ValueTypes.STRING:
             if "'" in self.value or "\"" in self.value:
@@ -327,14 +380,13 @@ class Column(DMLBase):
                 col_buffer.append(", ")
         if self.func is None:
             # Add column name
-            col_buffer.append(dialect.column2sql(self.name))
+            col_buffer.append(col_name)
             # Add order type
             if not self.asc:
                 col_buffer.append(SQLUtils.get_sql_order_type(self.asc))
         else:
             # Add aggregate function
-            func = SQLUtils.get_aggr_func_with_column(
-                self.func, dialect.column2sql(self.name))
+            func = SQLUtils.get_aggr_func_with_column(self.func, col_name)
             col_buffer.append(func)
         # Add operator & value
         if self.compare is not None and self.value is not None:
@@ -347,7 +399,7 @@ class Column(DMLBase):
         # Add alias
         if self.alias is not None:
             col_buffer.append(SQLUtils.get_sql_as_keyword())
-            col_buffer.append(self.alias)
+            col_buffer.append(dialect.column2sql(self.alias))
         return "".join(col_buffer)
 
 
@@ -364,7 +416,7 @@ class Where(ClauseBase):
 
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
-    def add_column(self, column_name, column_value,
+    def add_column(self, column_name, column_value, table_name=None,
                    column_type=ValueTypes.STRING,
                    compare_type=CompareTypes.EQUALS,
                    relation_type=RelationTypes.AND):
@@ -376,6 +428,8 @@ class Where(ClauseBase):
         :type column_name: str
         :param column_value: Value for target column to filter records.
         :type column_value: object
+        :param table_name: Table name or table alias to get column from.
+        :type table_name: str
         :param column_type: Column data type of target column.
         :type column_type: ValueTypes
         :param compare_type: Type of comparison between record value and target
@@ -385,6 +439,8 @@ class Where(ClauseBase):
         :type relation_type: RelationTypes
         :raises NoneColumnNameError: If column name is `None`.
 
+        .. note:: `column_value` could be a target column name or column alias.
+
         .. seealso:: :class:`~.constants.ValueTypes`,
             :class:`~.constants.CompareTypes` and
             :class:`~.constants.RelationTypes`.
@@ -393,6 +449,7 @@ class Where(ClauseBase):
             is_first = self.get_size() == 0
             col = Column(column_name, is_first)
             col.value = column_value
+            col.table = table_name
             col.type = column_type
             col.compare = compare_type
             col.relation = relation_type
@@ -416,7 +473,7 @@ class Having(ClauseBase):
 
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
-    def add_column(self, column_name, aggr_func, column_value,
+    def add_column(self, column_name, aggr_func, column_value, table_name=None,
                    column_type=ValueTypes.STRING,
                    compare_type=CompareTypes.EQUALS,
                    relation_type=RelationTypes.AND):
@@ -430,6 +487,8 @@ class Having(ClauseBase):
         :type aggr_func: AggregateFunctions
         :param column_value: Value for target column to filter records.
         :type column_value: object
+        :param table_name: Table name or table alias to get column from.
+        :type table_name: str
         :param column_type: Column data type of target column.
         :type column_type: ValueTypes
         :param compare_type: Type of comparison between record value and target
@@ -438,6 +497,8 @@ class Having(ClauseBase):
         :param relation_type: Type of relation between different criterion.
         :type relation_type: RelationTypes
         :raises NoneColumnNameError: If column name is `None`.
+
+        .. note:: `column_value` could be a target column name or column alias.
 
         .. seealso:: :class:`~.constants.ValueTypes`,
             :class:`~.constants.CompareTypes` and
@@ -448,6 +509,7 @@ class Having(ClauseBase):
             col = Column(column_name, is_first)
             col.func = aggr_func
             col.value = column_value
+            col.table = table_name
             col.type = column_type
             col.compare = compare_type
             col.relation = relation_type
@@ -472,17 +534,20 @@ class GroupBy(ClauseBase):
 
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
-    def add_column(self, column_name):
+    def add_column(self, column_name, table_name=None):
         """
         Add column to group the result.
 
         :param column_name: Column name of target column to group.
         :type column_name: str
+        :param table_name: Table name or table alias to get column from.
+        :type table_name: str
         :raises NoneColumnNameError: If column name is `None`.
         """
         if column_name is not None:
             is_first = self.get_size() == 0
             col = Column(column_name, is_first)
+            col.table = table_name
             self._columns.append(col)
         else:
             raise NoneColumnNameError
@@ -503,7 +568,7 @@ class OrderBy(ClauseBase):
 
     .. note:: This class is subclass of :class:`ClauseBase`.
     """
-    def add_column(self, column_name, asc=True):
+    def add_column(self, column_name, asc=True, table_name=None):
         """
         Add a column for sorting order.
 
@@ -512,12 +577,15 @@ class OrderBy(ClauseBase):
         :param asc: Sort the records in ascending order or in a descending
             order. Default by "True(ascending)".
         :type asc: bool
+        :param table_name: Table name or table alias to get column from.
+        :type table_name: str
         :raises NoneColumnNameError: If column name is `None`.
         """
         if column_name is not None:
             is_first = self.get_size() == 0
             col = Column(column_name, is_first)
             col.asc = asc
+            col.table = table_name
             self._columns.append(col)
         else:
             raise NoneColumnNameError
@@ -560,12 +628,15 @@ class Select(DMLBase):
     _group_by = None
     _order_by = None
 
-    def add_column(self, column_name, aggr_func=None, alias=None):
+    def add_column(self, column_name, table_name=None, aggr_func=None,
+                   alias=None):
         """
         Add column for selecting data from.
 
         :param column_name: Column name of target column to select.
         :type column_name: str
+        :param table_name: Table name or table alias to get column from.
+        :type table_name: str
         :param aggr_func: Aggregate function for calculating records. Default by
             `None`.
         :type aggr_func: AggregateFunctions
@@ -577,6 +648,7 @@ class Select(DMLBase):
         if column_name is not None:
             is_first = len(self._columns) == 0
             column = Column(column_name, is_first)
+            column.table = table_name
             column.func = aggr_func
             column.alias = alias
             self._columns.append(column)

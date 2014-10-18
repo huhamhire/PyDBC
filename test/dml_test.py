@@ -24,6 +24,9 @@ from data.constants import (
 
 
 class WhereTestCase(unittest.TestCase):
+    """
+    Unittest for generating SQL `WHERE` clause.
+    """
     class TestColumns(object):
         basic_int = {
             "column_name": "alpha",
@@ -35,6 +38,12 @@ class WhereTestCase(unittest.TestCase):
             "column_value": 1,
             "column_type": ValueTypes.INTEGER,
             "compare_type": CompareTypes.LESS_THAN_OR_EQUAL
+        }
+        basic_int_with_table = {
+            "column_name": "alpha",
+            "column_value": 1,
+            "table_name": "foo",
+            "column_type": ValueTypes.INTEGER
         }
         basic_str = {
             "column_name": "foo",
@@ -67,6 +76,12 @@ class WhereTestCase(unittest.TestCase):
         result = self.where.to_sql(self.dialect)
         self.assertEqual(result, expected)
 
+    def test_one_column_int_with_table(self):
+        self.where.add_column(**self.TestColumns.basic_int_with_table)
+        expected = " WHERE foo.alpha=1"
+        result = self.where.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
     def test_one_column_str(self):
         self.where.add_column(**self.TestColumns.basic_str)
         expected = " WHERE foo='bar'"
@@ -89,6 +104,9 @@ class WhereTestCase(unittest.TestCase):
 
 
 class HavingTestCase(unittest.TestCase):
+    """
+    Unittest for generating SQL `HAVING` clause.
+    """
     class TestColumns(object):
         basic_int_avg = {
             "column_name": "alpha",
@@ -142,6 +160,9 @@ class HavingTestCase(unittest.TestCase):
 
 
 class GroupByTestCase(unittest.TestCase):
+    """
+    Unittest for generating SQL `GROUP BY` clause.
+    """
     class TestColumns(object):
         column_alpha = {"column_name": "alpha"}
         column_beta = {"column_name": "beta"}
@@ -168,6 +189,9 @@ class GroupByTestCase(unittest.TestCase):
 
 
 class OrderByTestCase(unittest.TestCase):
+    """
+    Unittest for generating SQL `ORDER BY` clause.
+    """
     class TestColumns(object):
         column_alpha_asc = {"column_name": "alpha"}
         column_beta_desc = {"column_name": "beta", "asc": False}
