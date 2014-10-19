@@ -1,0 +1,9 @@
+language: python
+python:
+  - "2.7"
+
+script:
+  # set pythonpath
+  - export PYTHONPATH=$PYTHONPATH:./
+  # run tests
+  - ./test/run_test.py
