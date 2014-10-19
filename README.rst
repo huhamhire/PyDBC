@@ -2,6 +2,8 @@
 Python Database Connector
 #########################
 
+.. image:: https://travis-ci.org/huhamhire/PyDBC.svg
+    :target: https://travis-ci.org/huhamhire/PyDBC
 
 Introduction
 ============
