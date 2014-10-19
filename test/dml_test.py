@@ -127,6 +127,29 @@ class JoinedTableTest(unittest.TestCase):
         result = self.tables.to_sql(self.dialect)
         self.assertEqual(result, expected)
 
+    def test_join_with_select(self):
+        # Result table of a select statement
+        select = Select()
+        select_table = JoinedTables()
+        select_table.add_table("foo")
+        select.set_tables(select_table)
+        select.add_column("alpha")
+        select.add_column("beta")
+        self.tables.add_table(select=select, alias="f")
+        # Join condition
+        condition = JoinedConditions()
+        column_1 = Column("alpha")
+        column_1.table = "f"
+        column_2 = Column("alpha")
+        column_2.table = "b"
+        condition.add_condition(column_1, column_2)
+        # Join tables
+        self.tables.add_table("bar", "b", condition=condition)
+        expected = "(SELECT alpha, beta FROM foo) AS f " \
+                   "INNER JOIN bar AS b ON f.alpha=b.alpha"
+        result = self.tables.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
 
 # ===================================
 # Unit tests for generic SQL clauses:
