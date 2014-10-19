@@ -894,6 +894,25 @@ class Select(DMLBase):
     _group_by = None
     _order_by = None
 
+    def __init__(self):
+        """
+        Initialize a `Select` object for generating a SQL select statement.
+        """
+        super(Select, self).__init__()
+        self.clear()
+
+    def clear(self):
+        """
+        Reset current `Select` object.
+        """
+        self._distinct = False
+        self._columns = []
+        self._tables = None
+        self._where = None
+        self._having = None
+        self._group_by = None
+        self._order_by = None
+
     def add_column(self, column_name, table_name=None, aggr_func=None,
                    alias=None):
         """
@@ -1049,23 +1068,38 @@ class Select(DMLBase):
         :type dialect: Dialect
         :return: A string of SQL `SELECT` statement.
         :rtype: str
+        :raises NoneTableNameError: If table(s) for selecting data from is not
+            set.
         """
         sql_buffer = []
         if self._raw_sql:
             # Use raw SQL statement if exists
             sql_buffer.append(self.create_keyword())
             sql_buffer.append(self._raw_sql)
-        elif len(self._columns) > 0:
+        else:
             sql_buffer.append(self.create_keyword())
-            for col in self._columns:
-                # Add column SQL
-                sql_buffer.append(col.to_sql(dialect))
+            if len(self._columns) > 0:
+                for col in self._columns:
+                    # Add column SQL
+                    sql_buffer.append(col.to_sql(dialect))
+            else:
+                sql_buffer.append(SQLUtils.get_sql_all_columns())
+            # Add table
+            sql_buffer.append(SQLUtils.get_sql_from_keyword())
+            if isinstance(self._tables, JoinedTables):
+                sql_buffer.append(self._tables.to_sql(dialect))
+            else:
+                raise NoneTableNameError
+            # Where clause
             if self._where:
                 sql_buffer.append(self._where.to_sql(dialect))
-            if self._having:
-                sql_buffer.append(self._having.to_sql(dialect))
+            # Group By Clause
             if self._group_by:
                 sql_buffer.append(self._group_by.to_sql(dialect))
+            # Having clause
+            if self._having:
+                sql_buffer.append(self._having.to_sql(dialect))
+            # Order By Clause
             if self._order_by:
                 sql_buffer.append(self._order_by.to_sql(dialect))
         return "".join(sql_buffer)

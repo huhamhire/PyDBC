@@ -97,6 +97,14 @@ class SQLUtils(object):
         return " AS "
 
     @staticmethod
+    def get_sql_all_columns():
+        return "*"
+
+    @staticmethod
+    def get_sql_from_keyword():
+        return " FROM "
+
+    @staticmethod
     def get_aggr_func_with_column(func_type, column_name):
         if func_type == AggregateFunctions.AVG:
             function = "AVG(" + column_name + ")"

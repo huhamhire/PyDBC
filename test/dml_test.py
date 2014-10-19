@@ -19,7 +19,7 @@ import unittest
 
 from data.dml import (
     Column, JoinedConditions, JoinedTables, Where, Having, GroupBy, OrderBy,
-    UnsupportedJoinTypeError)
+    Select, UnsupportedJoinTypeError)
 from data.dialect import Dialect
 from data.constants import (
     ValueTypes, CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
@@ -329,18 +329,109 @@ class OrderByTest(unittest.TestCase):
         self.assertEqual(result, expected)
 
 
-def get_dml_test_suite():
+# ======================================
+# Unit tests for generic DML statements:
+#   1. SelectTest
+# ======================================
+class SelectTest(unittest.TestCase):
+    def setUp(self):
+        self.select = Select()
+        self.dialect = Dialect()
+
+    def tearDown(self):
+        self.select.clear()
+
+    def test_simple_select_all(self):
+        table = JoinedTables()
+        table.add_table("foo")
+        self.select.set_tables(table)
+        expected = "SELECT * FROM foo"
+        result = self.select.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_simple_select(self):
+        table = JoinedTables()
+        table.add_table("foo")
+        self.select.set_tables(table)
+        self.select.add_column("alpha", "foo")
+        self.select.add_column("beta", "foo", AggregateFunctions.SUM, "sum_b")
+        expected = "SELECT foo.alpha, SUM(foo.beta) AS sum_b FROM foo"
+        result = self.select.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_select_with_clauses(self):
+        table = JoinedTables()
+        table.add_table("foo")
+        self.select.set_tables(table)
+        self.select.add_column("alpha")
+        self.select.add_column("beta")
+        where = Where()
+        where.add_column("alpha", 1, column_type=ValueTypes.INTEGER,
+                         compare_type=CompareTypes.LESS_THAN_OR_EQUAL)
+        self.select.set_where(where)
+        expected = "SELECT alpha, beta FROM foo WHERE alpha<=1"
+        result = self.select.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+        # Add GroupBy and Having
+        self.select.add_column("gamma")
+        self.select.add_column("delta")
+        group_by = GroupBy()
+        group_by.add_column("gamma")
+        having = Having()
+        having.add_column("delta", AggregateFunctions.AVG, 1,
+                          column_type=ValueTypes.INTEGER)
+        self.select.set_group_by(group_by)
+        self.select.set_having(having)
+        expected = "SELECT alpha, beta, gamma, delta FROM foo " \
+                   "WHERE alpha<=1 GROUP BY gamma HAVING AVG(delta)=1"
+        result = self.select.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+        # Add OrderBy
+        order_by = OrderBy()
+        order_by.add_column("gamma", False)
+        self.select.set_order_by(order_by)
+        expected = "SELECT alpha, beta, gamma, delta FROM foo " \
+                   "WHERE alpha<=1 GROUP BY gamma HAVING AVG(delta)=1 " \
+                   "ORDER BY gamma DESC"
+        result = self.select.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_select_joined_tables(self):
+        table = JoinedTables()
+        table.add_table("foo")
+        condition = JoinedConditions()
+        column_1 = Column("alpha")
+        column_1.table = "foo"
+        column_2 = Column("alpha")
+        column_2.table = "bar"
+        condition.add_condition(column_1, column_2)
+        table.add_table("bar", join=JoinTypes.LEFT_JOIN, condition=condition)
+        self.select.set_tables(table)
+        expected = "SELECT * FROM foo LEFT JOIN bar ON foo.alpha=bar.alpha"
+        result = self.select.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+        # Add columns
+        self.select.add_column("alpha", "foo")
+        self.select.add_column("beta", "bar")
+        expected = "SELECT foo.alpha, bar.beta FROM foo " \
+                   "LEFT JOIN bar ON foo.alpha=bar.alpha"
+        result = self.select.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+
+def dml_test_suite():
     joined_table_test = unittest.makeSuite(JoinedTableTest, "test")
     joined_condition_test = unittest.makeSuite(JoinedConditionsTest, "test")
     where_test = unittest.makeSuite(WhereTest, "test")
     having_test = unittest.makeSuite(HavingTest, "test")
     group_by_test = unittest.makeSuite(GroupByTest, "test")
     order_by_test = unittest.makeSuite(OrderByTest, "test")
+    select_test = unittest.makeSuite(SelectTest, "test")
     dml_test = unittest.TestSuite((
         where_test, having_test, group_by_test, order_by_test,
-        joined_table_test, joined_condition_test
+        joined_table_test, joined_condition_test, select_test
     ))
     return dml_test
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=1).run(get_dml_test_suite())
+    unittest.TextTestRunner(verbosity=1).run(dml_test_suite())
