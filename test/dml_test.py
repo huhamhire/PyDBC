@@ -18,18 +18,19 @@ import re
 import unittest
 
 from data.dml import (
-    Column, JoinedConditions, Where, Having, GroupBy, OrderBy,
+    Column, JoinedConditions, JoinedTables, Where, Having, GroupBy, OrderBy,
     UnsupportedJoinTypeError)
 from data.dialect import Dialect
 from data.constants import (
-    ValueTypes, CompareTypes, RelationTypes, AggregateFunctions)
+    ValueTypes, CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
 
 
 # ========================================
 # Unit tests for auxiliary DML components:
-#   1. JoinedConditionsTestCase
+#   1. JoinedConditionsTest
+#   2. JoinedTableTest
 # ========================================
-class JoinedConditionsTestCase(unittest.TestCase):
+class JoinedConditionsTest(unittest.TestCase):
     """
     Unittest for generating table join conditions.
     """
@@ -89,14 +90,52 @@ class JoinedConditionsTestCase(unittest.TestCase):
         self.assertEqual(flag, 1)
 
 
+class JoinedTableTest(unittest.TestCase):
+    """
+    Unittest for generating joined table.
+    """
+    def setUp(self):
+        self.tables = JoinedTables()
+        self.dialect = Dialect()
+
+    def tearDown(self):
+        self.tables.clear()
+
+    def test_single_table(self):
+        self.tables.add_table("foo")
+        expected = "foo"
+        result = self.tables.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_single_table_alias(self):
+        self.tables.add_table("foo", "f")
+        expected = "foo AS f"
+        result = self.tables.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+    def test_two_tables_join(self):
+        self.tables.add_table("foo")
+        condition = JoinedConditions()
+        column_1 = Column("alpha")
+        column_1.table = "foo"
+        column_2 = Column("beta")
+        column_2.table = "bar"
+        condition.add_condition(column_1, column_2)
+        self.tables.add_table(
+            "bar", join=JoinTypes.LEFT_JOIN, condition=condition)
+        expected = "foo LEFT JOIN bar ON foo.alpha=bar.beta"
+        result = self.tables.to_sql(self.dialect)
+        self.assertEqual(result, expected)
+
+
 # ===================================
 # Unit tests for generic SQL clauses:
-#   1. WhereTestCase
-#   2. HavingTestCase
-#   3. GroupByTestCase
-#   4. OrderByTestCase
+#   1. WhereTest
+#   2. HavingTest
+#   3. GroupByTest
+#   4. OrderByTest
 # ===================================
-class WhereTestCase(unittest.TestCase):
+class WhereTest(unittest.TestCase):
     """
     Unittest for generating SQL `WHERE` clause.
     """
@@ -176,7 +215,7 @@ class WhereTestCase(unittest.TestCase):
         self.assertEqual(result, expected)
 
 
-class HavingTestCase(unittest.TestCase):
+class HavingTest(unittest.TestCase):
     """
     Unittest for generating SQL `HAVING` clause.
     """
@@ -232,7 +271,7 @@ class HavingTestCase(unittest.TestCase):
         self.assertEqual(flag, 1)
 
 
-class GroupByTestCase(unittest.TestCase):
+class GroupByTest(unittest.TestCase):
     """
     Unittest for generating SQL `GROUP BY` clause.
     """
@@ -261,7 +300,7 @@ class GroupByTestCase(unittest.TestCase):
         self.assertEqual(result, expected)
 
 
-class OrderByTestCase(unittest.TestCase):
+class OrderByTest(unittest.TestCase):
     """
     Unittest for generating SQL `ORDER BY` clause.
     """
@@ -291,14 +330,15 @@ class OrderByTestCase(unittest.TestCase):
 
 
 def get_dml_test_suite():
-    join_condition_test = unittest.makeSuite(JoinedConditionsTestCase, "test")
-    where_test = unittest.makeSuite(WhereTestCase, "test")
-    having_test = unittest.makeSuite(HavingTestCase, "test")
-    group_by_test = unittest.makeSuite(GroupByTestCase, "test")
-    order_by_test = unittest.makeSuite(OrderByTestCase, "test")
+    joined_table_test = unittest.makeSuite(JoinedTableTest, "test")
+    joined_condition_test = unittest.makeSuite(JoinedConditionsTest, "test")
+    where_test = unittest.makeSuite(WhereTest, "test")
+    having_test = unittest.makeSuite(HavingTest, "test")
+    group_by_test = unittest.makeSuite(GroupByTest, "test")
+    order_by_test = unittest.makeSuite(OrderByTest, "test")
     dml_test = unittest.TestSuite((
         where_test, having_test, group_by_test, order_by_test,
-        join_condition_test
+        joined_table_test, joined_condition_test
     ))
     return dml_test
 

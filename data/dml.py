@@ -295,6 +295,7 @@ class Table(DMLBase):
             table_buffer.append(dialect.table2sql(self.name))
             if self.alias is not None:
                 table_buffer.append(SQLUtils.get_sql_as_keyword())
+                table_buffer.append(dialect.table2sql(self.alias))
         elif self.select is not None and self.alias is not None:
             table_buffer.append("".join([
                 "(", self.select.to_sql(dialect), ")",
@@ -304,7 +305,7 @@ class Table(DMLBase):
             raise NoneTableNameError
         # Add join condition
         if not self.is_first:
-            self.condition.to_sql(dialect)
+            table_buffer.append(self.condition.to_sql(dialect))
         return "".join(table_buffer)
 
 
@@ -874,8 +875,9 @@ class Select(DMLBase):
     :cvar bool _distinct: A boolean indicating whether to use `DISTINCT` keyword
         in the SQL `SELECT` statement or not.
     :cvar list _columns: A list of columns for selecting data.
-    :cvar JoinedTables _tables: Target table to select data from. The target table
-        could be a single table or a result table joined by multiple tables.
+    :cvar JoinedTables _tables: Target table to select data from. The target
+        table could be a single table or a result table joined by multiple
+        tables.
     :cvar Where _where: Object to create SQL `WHERE` clause to filter records.
     :cvar Having _having: Object to create SQL `HAVING` clause to filter records
         with aggregate functions.
