@@ -10,9 +10,16 @@ Python Database Connector
     :alt: Coverage Status
     :target: https://coveralls.io/r/huhamhire/PyDBC?branch=master
 
+.. image:: https://readthedocs.org/projects/pydbc/badge/?version=latest
+    :alt: Documentation
+    :target: http://pydbc.readthedocs.org/en/latest/
+
 .. image:: https://img.shields.io/:license-mit-blue.svg
     :alt: License
     :target: http://badges.mit-license.org/
+
+.. image:: https://reposs.herokuapp.com/?path=huhamhire/PyDBC
+    :alt: Repo Size
 
 Introduction
 ============

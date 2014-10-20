@@ -12,10 +12,19 @@
 # SOFTWARE.
 # =============================================================================
 """
-Python Database Connector
-=========================
+DML Utilities
+=============
 
+DMLBase
+-------
+.. autoclass:: data.dml.DMLBase
+    :members:
 
+ClauseBase
+----------
+.. autoclass:: data.dml.ClauseBase
+    :members:
+
+DDL Utilities
+=============
 """
-
-__author__ = "huhamhire <me@huhamhire.com>"
