@@ -14,7 +14,14 @@
 
 __author__ = "huhamhire <me@huhamhire.com>"
 
-__all__ = ["dml"]
+__all__ = ["dml", "SQLUtils", "SQLTypes", "CompareTypes", "RelationTypes",
+           "AggregateFunctions", "JoinTypes", "ValueTypes"]
 
 
 import dml
+
+from sqlutils import SQLUtils
+from constants import (
+    SQLTypes, CompareTypes, RelationTypes, AggregateFunctions, JoinTypes,
+    ValueTypes
+)

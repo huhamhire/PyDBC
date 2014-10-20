@@ -11,17 +11,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # =============================================================================
+"""
+DML Utilities
+=============
 
-__author__ = "huhamhire <me@huhamhire.com>"
+DMLBase
+-------
+.. autoclass:: data.dml.DMLBase
+    :members:
 
-import unittest
+ClauseBase
+----------
+.. autoclass:: data.dml.ClauseBase
+    :members:
 
-
-def run_tests():
-    from test.base_test import base_test_suite
-    from test.dml_test import dml_test_suite
-    tests = unittest.TestSuite((dml_test_suite(), base_test_suite()))
-    unittest.TextTestRunner(verbosity=1).run(tests)
-
-if __name__ == "__main__":
-    run_tests()
+DDL Utilities
+=============
+"""
