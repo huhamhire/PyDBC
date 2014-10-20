@@ -2,8 +2,13 @@
 Python Database Connector
 #########################
 
-.. image:: https://travis-ci.org/huhamhire/PyDBC.svg
+.. image:: https://travis-ci.org/huhamhire/PyDBC.svg?branch=master
+    :alt: Build Status
     :target: https://travis-ci.org/huhamhire/PyDBC
+
+.. image:: https://coveralls.io/repos/huhamhire/PyDBC/badge.png?branch=master
+    :alt: Coverage Status
+    :target: https://coveralls.io/r/huhamhire/PyDBC?branch=master
 
 Introduction
 ============
