@@ -16,6 +16,12 @@ __author__ = "huhamhire <me@huhamhire.com>"
 
 import unittest
 
-if __name__ == "__main__":
+
+def run_tests():
+    from test.base_test import base_test_suite
     from test.dml_test import dml_test_suite
-    unittest.TextTestRunner(verbosity=1).run(dml_test_suite())
+    tests = unittest.TestSuite((dml_test_suite(), base_test_suite()))
+    unittest.TextTestRunner(verbosity=1).run(tests)
+
+if __name__ == "__main__":
+    run_tests()

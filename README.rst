@@ -10,6 +10,10 @@ Python Database Connector
     :alt: Coverage Status
     :target: https://coveralls.io/r/huhamhire/PyDBC?branch=master
 
+.. image:: https://img.shields.io/:license-mit-blue.svg
+    :alt: License
+    :target: http://badges.mit-license.org/
+
 Introduction
 ============
 Python Database Connector is a simple package providing lightweight DDL and DML

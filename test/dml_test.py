@@ -357,6 +357,9 @@ class OrderByTest(unittest.TestCase):
 #   1. SelectTest
 # ======================================
 class SelectTest(unittest.TestCase):
+    """
+    Unittest for generating SQL `SELECT` statement.
+    """
     def setUp(self):
         self.select = Select()
         self.dialect = Dialect()
