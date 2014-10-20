@@ -153,6 +153,10 @@ class SQLUtilityTest(unittest.TestCase):
         aggr = SQLUtils.get_aggr_func_with_column(
             AggregateFunctions.AVG, self.column_name)
         self.assertEqual(aggr, "AVG(" + self.column_name + ")")
+        # COUNT
+        aggr = SQLUtils.get_aggr_func_with_column(
+            AggregateFunctions.COUNT, self.column_name)
+        self.assertEqual(aggr, "COUNT(" + self.column_name + ")")
         # MAX
         aggr = SQLUtils.get_aggr_func_with_column(
             AggregateFunctions.MAX, self.column_name)
