@@ -20,12 +20,12 @@ DML Utilities
 
 DMLBase
 -------
-.. autoclass:: db_connector.dml.DMLBase
+.. autoclass:: connector.dml.DMLBase
     :members:
 
 ClauseBase
 ----------
-.. autoclass:: db_connector.dml.ClauseBase
+.. autoclass:: connector.dml.ClauseBase
     :members:
 """
 

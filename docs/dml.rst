@@ -1,2 +1,2 @@
-.. automodule:: db_connector.dml
+.. automodule:: connector.dml
     :members:
