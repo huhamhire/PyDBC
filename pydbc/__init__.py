@@ -18,12 +18,11 @@ __all__ = ["dml", "Dialect", "SQLUtils",
            "SQLTypes", "CompareTypes", "RelationTypes", "AggregateFunctions",
            "JoinTypes", "ValueTypes"]
 
+import dml
 
-from dialect import Dialect
-from sqlutils import SQLUtils
-from constants import (
+from .dialect import Dialect
+from .sqlutils import SQLUtils
+from .constants import (
     SQLTypes, CompareTypes, RelationTypes, AggregateFunctions, JoinTypes,
     ValueTypes
 )
-
-import dml

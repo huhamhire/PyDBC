@@ -16,6 +16,6 @@ __author__ = "huhamhire <me@huhamhire.com>"
 
 __all__ = ["run_tests", "base_test_suite", "dml_test_suite"]
 
-from run_tests import run_tests
-from base_test import base_test_suite
-from dml_test import dml_test_suite
+from .run_tests import run_tests
+from .base_test import base_test_suite
+from .dml_test import dml_test_suite

@@ -20,8 +20,8 @@ import unittest
 from pydbc.dml import (
     Column, JoinedConditions, JoinedTables, Where, Having, GroupBy, OrderBy,
     Select, UnsupportedJoinTypeError)
-from pydbc.dialect import Dialect
-from pydbc.constants import (
+from pydbc import Dialect
+from pydbc import (
     ValueTypes, CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
 
 

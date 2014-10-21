@@ -31,10 +31,10 @@ ClauseBase
 
 from abc import ABCMeta, abstractmethod
 
-from pydbc import (
+from .constants import (
     CompareTypes, ValueTypes, RelationTypes, AggregateFunctions, JoinTypes)
-from pydbc import Dialect
-from pydbc import SQLUtils
+from .dialect import Dialect
+from .sqlutils import SQLUtils
 
 
 # =================

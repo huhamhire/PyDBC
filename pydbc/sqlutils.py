@@ -14,7 +14,7 @@
 
 __author__ = "huhamhire <me@huhamhire.com>"
 
-from pydbc.constants import (
+from .constants import (
     CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
 
 

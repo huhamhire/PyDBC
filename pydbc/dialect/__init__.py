@@ -14,4 +14,6 @@
 
 __author__ = "huhamhire <me@huhamhire.com>"
 
-from base_dialect import Dialect
+__all__ = ["Dialect"]
+
+from .base_dialect import Dialect
