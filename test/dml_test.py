@@ -17,11 +17,11 @@ __author__ = "huhamhire <me@huhamhire.com>"
 import re
 import unittest
 
-from connector.dml import (
+from pydbc.dml import (
     Column, JoinedConditions, JoinedTables, Where, Having, GroupBy, OrderBy,
     Select, UnsupportedJoinTypeError)
-from connector.dialect import Dialect
-from connector.constants import (
+from pydbc.dialect import Dialect
+from pydbc.constants import (
     ValueTypes, CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
 
 

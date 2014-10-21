@@ -1,2 +1,2 @@
-.. automodule:: connector.dml
+.. automodule:: pydbc.dml
     :members:

@@ -20,21 +20,21 @@ DML Utilities
 
 DMLBase
 -------
-.. autoclass:: connector.dml.DMLBase
+.. autoclass:: pydbc.dml.DMLBase
     :members:
 
 ClauseBase
 ----------
-.. autoclass:: connector.dml.ClauseBase
+.. autoclass:: pydbc.dml.ClauseBase
     :members:
 """
 
 from abc import ABCMeta, abstractmethod
 
-from .constants import (
+from pydbc.constants import (
     CompareTypes, ValueTypes, RelationTypes, AggregateFunctions, JoinTypes)
-from .dialect import Dialect
-from .sqlutils import SQLUtils
+from pydbc.dialect import Dialect
+from pydbc.sqlutils import SQLUtils
 
 
 # =================

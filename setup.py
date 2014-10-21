@@ -16,7 +16,7 @@ setup(
     license="MIT",
     keywords="database SQL DDL DML management",
     url="https://github.com/huhamhire/PyDBC",
-    packages=['connector'],
+    packages=['pydbc'],
     long_description=read('README.rst'),
     classifiers=[
         "Development Status :: 1 - Planning",
@@ -26,4 +26,5 @@ setup(
         "Topic :: Database",
         "Topic :: Utilities",
     ],
+    zip_safe=False,
 )
