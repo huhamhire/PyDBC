@@ -14,6 +14,21 @@
 
 __author__ = "huhamhire <me@huhamhire.com>"
 
+__doc__ = """
+DML Utilities
+=============
+
+DMLBase
+-------
+.. autoclass:: db_connector.dml.DMLBase
+    :members:
+
+ClauseBase
+----------
+.. autoclass:: db_connector.dml.ClauseBase
+    :members:
+"""
+
 from abc import ABCMeta, abstractmethod
 
 from .constants import (

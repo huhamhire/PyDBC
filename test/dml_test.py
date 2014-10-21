@@ -17,11 +17,11 @@ __author__ = "huhamhire <me@huhamhire.com>"
 import re
 import unittest
 
-from data.dml import (
+from db_connector.dml import (
     Column, JoinedConditions, JoinedTables, Where, Having, GroupBy, OrderBy,
     Select, UnsupportedJoinTypeError)
-from data.dialect import Dialect
-from data.constants import (
+from db_connector.dialect import Dialect
+from db_connector.constants import (
     ValueTypes, CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
 
 

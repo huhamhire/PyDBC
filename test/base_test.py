@@ -16,8 +16,8 @@ __author__ = "huhamhire <me@huhamhire.com>"
 
 import unittest
 
-from data import SQLUtils
-from data import (
+from db_connector import SQLUtils
+from db_connector import (
     CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
 
 
