@@ -20,6 +20,8 @@ Python Database Connector
 
 .. image:: https://reposs.herokuapp.com/?path=huhamhire/PyDBC
     :alt: Repo Size
+    :target: https://github.com/huhamhire/PyDBC
+    
 
 Introduction
 ============

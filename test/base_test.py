@@ -16,8 +16,8 @@ __author__ = "huhamhire <me@huhamhire.com>"
 
 import unittest
 
-from data import SQLUtils
-from data import (
+from pydbc import SQLUtils
+from pydbc import (
     CompareTypes, RelationTypes, AggregateFunctions, JoinTypes)
 
 

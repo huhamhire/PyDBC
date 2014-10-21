@@ -10,13 +10,4 @@ This is the documentation for `Python Database Connector`, last updated |today|.
     :numbered:
     :maxdepth: 2
 
-    data
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+    dml

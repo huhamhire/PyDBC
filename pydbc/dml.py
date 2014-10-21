@@ -14,12 +14,27 @@
 
 __author__ = "huhamhire <me@huhamhire.com>"
 
+__doc__ = """
+DML Utilities
+=============
+
+DMLBase
+-------
+.. autoclass:: pydbc.dml.DMLBase
+    :members:
+
+ClauseBase
+----------
+.. autoclass:: pydbc.dml.ClauseBase
+    :members:
+"""
+
 from abc import ABCMeta, abstractmethod
 
-from .constants import (
+from pydbc.constants import (
     CompareTypes, ValueTypes, RelationTypes, AggregateFunctions, JoinTypes)
-from .dialect import Dialect
-from .sqlutils import SQLUtils
+from pydbc.dialect import Dialect
+from pydbc.sqlutils import SQLUtils
 
 
 # =================

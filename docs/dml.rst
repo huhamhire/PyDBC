@@ -1,0 +1,2 @@
+.. automodule:: pydbc.dml
+    :members:
