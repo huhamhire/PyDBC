@@ -17,15 +17,91 @@ __author__ = "huhamhire <me@huhamhire.com>"
 __doc__ = """
 DML Utilities
 =============
-
+DML base classes
+----------------
 DMLBase
--------
+~~~~~~~
 .. autoclass:: pydbc.dml.DMLBase
     :members:
 
 ClauseBase
-----------
+~~~~~~~~~~
 .. autoclass:: pydbc.dml.ClauseBase
+    :members:
+
+Basic SQL Components
+--------------------
+Table
+~~~~~
+.. autoclass:: pydbc.dml.Table
+    :members:
+
+Column
+~~~~~~
+.. autoclass:: pydbc.dml.Column
+    :members:
+
+Condition
+~~~~~~~~~
+.. autoclass:: pydbc.dml.Condition
+    :members:
+
+Auxiliary DML components
+------------------------
+JoinedConditions
+~~~~~~~~~~~~~~~~
+.. autoclass:: pydbc.dml.JoinedConditions
+    :members:
+
+JoinedTables
+~~~~~~~~~~~~
+.. autoclass:: pydbc.dml.JoinedTables
+    :members:
+
+Generic SQL clauses
+-------------------
+Where
+~~~~~
+.. autoclass:: pydbc.dml.Where
+    :members:
+
+Having
+~~~~~~
+.. autoclass:: pydbc.dml.Having
+    :members:
+
+GroupBy
+~~~~~~~
+.. autoclass:: pydbc.dml.GroupBy
+    :members:
+
+OrderBy
+~~~~~~~
+.. autoclass:: pydbc.dml.OrderBy
+    :members:
+
+Generic DML statements
+----------------------
+Select
+~~~~~~~
+.. autoclass:: pydbc.dml.Select
+    :members:
+
+DML Exceptions
+--------------
+NoneColumnNameError
+~~~~~~~~~~~~~~~~~~~
+.. autoclass:: pydbc.dml.NoneColumnNameError
+    :members:
+
+NoneTableNameError
+~~~~~~~~~~~~~~~~~~
+.. autoclass:: pydbc.dml.NoneTableNameError
+    :members:
+
+UnsupportedJoinTypeError
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. autoclass:: pydbc.dml.UnsupportedJoinTypeError
     :members:
 """
 
@@ -181,6 +257,7 @@ class ClauseBase(DMLBase):
 # DML Exceptions:
 #   1. NoneColumnNameError
 #   2. NoneTableNameError
+#   3. UnsupportedJoinTypeError
 # ========================
 class NoneColumnNameError(ValueError):
     """

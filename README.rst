@@ -2,11 +2,11 @@
 Python Database Connector
 #########################
 
-.. image:: https://travis-ci.org/huhamhire/PyDBC.svg?branch=master
+.. image:: https://img.shields.io/travis/huhamhire/PyDBC.svg?branch=master&style=flat
     :alt: Build Status
     :target: https://travis-ci.org/huhamhire/PyDBC
 
-.. image:: https://coveralls.io/repos/huhamhire/PyDBC/badge.png?branch=master
+.. image:: https://img.shields.io/coveralls/huhamhire/PyDBC.svg?branch=master&style=flat
     :alt: Coverage Status
     :target: https://coveralls.io/r/huhamhire/PyDBC?branch=master
 
@@ -14,11 +14,11 @@ Python Database Connector
     :alt: Documentation
     :target: http://pydbc.readthedocs.org/en/latest/
 
-.. image:: https://img.shields.io/:license-mit-blue.svg
+.. image:: https://img.shields.io/badge/license-MIT-blue.svg?style=flat
     :alt: License
     :target: http://badges.mit-license.org/
 
-.. image:: https://reposs.herokuapp.com/?path=huhamhire/PyDBC
+.. image:: https://reposs.herokuapp.com/?path=huhamhire/PyDBC&&style=flat
     :alt: Repo Size
     :target: https://github.com/huhamhire/PyDBC
     

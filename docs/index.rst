@@ -8,6 +8,6 @@ This is the documentation for `Python Database Connector`, last updated |today|.
 
 .. toctree::
     :numbered:
-    :maxdepth: 2
+    :maxdepth: 3
 
     dml
